@@ -3,53 +3,107 @@ session_start();
 include('config/config.php');
 include('config/checklogin.php');
 check_login();
-//Delete ICS Record
+
+//Delete individual item
+if (isset($_GET['delete_item'])) {
+  $ics_item_id = $_GET['delete_item'];
+  
+  // Start transaction
+  $mysqli->begin_transaction();
+  
+  try {
+    // First get the item_id from ics_items
+    $stmt = $mysqli->prepare("SELECT item_id FROM ics_items WHERE ics_item_id = ?");
+    $stmt->bind_param('i', $ics_item_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $item_id = $result->fetch_object()->item_id;
+    
+    // Delete from ics_items
+    $stmt = $mysqli->prepare("DELETE FROM ics_items WHERE ics_item_id = ?");
+    $stmt->bind_param('i', $ics_item_id);
+    $stmt->execute();
+    
+    // Delete from items
+    $stmt = $mysqli->prepare("DELETE FROM items WHERE item_id = ?");
+    $stmt->bind_param('i', $item_id);
+    $stmt->execute();
+    
+    // Commit transaction
+    $mysqli->commit();
+    $success = "Item Deleted Successfully";
+    header("refresh:1; url=display_ics.php");
+  } catch (Exception $e) {
+    // Rollback transaction on error
+    $mysqli->rollback();
+    $err = "Error: " . $e->getMessage();
+    header("refresh:1; url=display_ics.php");
+  }
+}
+
+//Delete ICS
 if (isset($_GET['delete'])) {
   $id = $_GET['delete'];
   
-  // First delete related items in ics_items
-  $adn = "DELETE FROM ics_items WHERE ics_id = ?";
-  $stmt = $mysqli->prepare($adn);
-  $stmt->bind_param('i', $id);
-  $stmt->execute();
-  $stmt->close();
+  // Start transaction
+  $mysqli->begin_transaction();
   
-  // Then delete the main ICS record
-  $adn = "DELETE FROM inventory_custodian_slips WHERE ics_id = ?";
-  $stmt = $mysqli->prepare($adn);
-  $stmt->bind_param('i', $id);
-  $stmt->execute();
-  $stmt->close();
-  
-  if ($stmt) {
-    $success = "Deleted" && header("refresh:1; url=display_ics.php");
-  } else {
-    $err = "Try Again Later";
+  try {
+    // Get all item_ids from ics_items for this ICS
+    $stmt = $mysqli->prepare("SELECT item_id FROM ics_items WHERE ics_id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    // Delete from ics_items first
+    $stmt = $mysqli->prepare("DELETE FROM ics_items WHERE ics_id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    
+    // Delete corresponding items
+    while ($row = $result->fetch_object()) {
+      $stmt = $mysqli->prepare("DELETE FROM items WHERE item_id = ?");
+      $stmt->bind_param('i', $row->item_id);
+      $stmt->execute();
+    }
+    
+    // Delete from inventory_custodian_slips
+    $stmt = $mysqli->prepare("DELETE FROM inventory_custodian_slips WHERE ics_id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    
+    // Commit transaction
+    $mysqli->commit();
+    $success = "Record Deleted Successfully";
+    header("refresh:1; url=display_ics.php");
+  } catch (Exception $e) {
+    // Rollback transaction on error
+    $mysqli->rollback();
+    $err = "Error: " . $e->getMessage();
+    header("refresh:1; url=display_ics.php");
   }
 }
+
 require_once('partials/_head.php');
 ?>
 
 <body>
   <!-- Sidenav -->
-  <?php
-  require_once('partials/_sidebar.php');
-  ?>
+  <?php require_once('partials/_sidebar.php'); ?>
+  
   <!-- Main content -->
   <div class="main-content">
     <!-- Top navbar -->
-    <?php
-    require_once('partials/_topnav.php');
-    ?>
+    <?php require_once('partials/_topnav.php'); ?>
+    
     <!-- Header -->
-    <div style="background-image: url(assets/img/theme/bnhsfront.jpg); background-size: cover;"
-      class="header  pb-8 pt-5 pt-md-8">
+    <div style="background-image: url(assets/img/theme/bnhsfront.jpg); background-size: cover;" class="header pb-8 pt-5 pt-md-8">
       <span class="mask bg-gradient-dark opacity-8"></span>
       <div class="container-fluid">
-        <div class="header-body">
-        </div>
+        <div class="header-body"></div>
       </div>
     </div>
+    
     <!-- Page content -->
     <div class="container-fluid mt--8">
       <!-- Table -->
@@ -61,10 +115,9 @@ require_once('partials/_head.php');
                 <h2 class="text-center mb-3 pt-3 text-uppercase">Inventory Custodian Slip</h2>
               </div>
               <div class="col text-right">
-                <i></i>
                 <a href="print_ics_files.php" class="btn btn-sm btn-primary" target="_blank">
-                  <i class="material-icons-sharp text-primary"></i>
-                  Print files</a>
+                  <i class="fas fa-print"></i> Print files
+                </a>
               </div>
             </div>
             <div class="table-responsive">
@@ -92,7 +145,7 @@ require_once('partials/_head.php');
                 </thead>
                 <tbody>
                   <?php
-                  $ret = "SELECT ics.ics_id, e.entity_name, e.fund_cluster, ics.ics_no,
+                  $ret = "SELECT ics.ics_id, ii.ics_item_id, i.item_id, e.entity_name, e.fund_cluster, ics.ics_no,
                            ii.quantity, i.unit, i.unit_cost, (ii.quantity * i.unit_cost) as total_amount,
                            i.item_description, ii.inventory_item_no, i.estimated_useful_life,
                            ics.end_user_name, ics.end_user_position, ics.end_user_date,
@@ -103,36 +156,41 @@ require_once('partials/_head.php');
                          JOIN items i ON ii.item_id = i.item_id
                          ORDER BY ics.created_at DESC";
                   $stmt = $mysqli->prepare($ret);
-                  $stmt->execute();
+                  if ($stmt === false) {
+                    die("Error preparing statement: " . $mysqli->error);
+                  }
+                  if (!$stmt->execute()) {
+                    die("Error executing statement: " . $stmt->error);
+                  }
                   $res = $stmt->get_result();
                   while ($ics = $res->fetch_object()) {
                     ?>
                     <tr>
-                      <td><?php echo $ics->entity_name; ?></td>
-                      <td><?php echo $ics->fund_cluster; ?></td>
-                      <td><?php echo $ics->ics_no; ?></td>
-                      <td><?php echo $ics->quantity; ?></td>
-                      <td><?php echo $ics->unit; ?></td>
-                      <td><?php echo $ics->unit_cost; ?></td>
-                      <td><?php echo $ics->total_amount; ?></td>
-                      <td><?php echo $ics->item_description; ?></td>
-                      <td><?php echo $ics->inventory_item_no; ?></td>
-                      <td><?php echo $ics->estimated_useful_life; ?></td>
-                      <td><?php echo $ics->end_user_name; ?></td>
-                      <td><?php echo $ics->end_user_position; ?></td>
-                      <td><?php echo $ics->end_user_date; ?></td>
-                      <td><?php echo $ics->custodian_name; ?></td>
-                      <td><?php echo $ics->custodian_position; ?></td>
-                      <td><?php echo $ics->custodian_date; ?></td>
+                      <td><?php echo htmlspecialchars($ics->entity_name); ?></td>
+                      <td><?php echo htmlspecialchars($ics->fund_cluster); ?></td>
+                      <td><?php echo htmlspecialchars($ics->ics_no); ?></td>
+                      <td><?php echo number_format($ics->quantity); ?></td>
+                      <td><?php echo htmlspecialchars($ics->unit); ?></td>
+                      <td>₱<?php echo number_format($ics->unit_cost, 2); ?></td>
+                      <td>₱<?php echo number_format($ics->total_amount, 2); ?></td>
+                      <td><?php echo htmlspecialchars($ics->item_description); ?></td>
+                      <td><?php echo htmlspecialchars($ics->inventory_item_no); ?></td>
+                      <td><?php echo htmlspecialchars($ics->estimated_useful_life); ?></td>
+                      <td><?php echo htmlspecialchars($ics->end_user_name); ?></td>
+                      <td><?php echo htmlspecialchars($ics->end_user_position); ?></td>
+                      <td><?php echo date('M d, Y', strtotime($ics->end_user_date)); ?></td>
+                      <td><?php echo htmlspecialchars($ics->custodian_name); ?></td>
+                      <td><?php echo htmlspecialchars($ics->custodian_position); ?></td>
+                      <td><?php echo date('M d, Y', strtotime($ics->custodian_date)); ?></td>
                       <td>
-                        <a href="display_ics.php?delete=<?php echo $ics->ics_id; ?>">
+                        <a href="display_ics.php?delete_item=<?php echo $ics->ics_item_id; ?>">
                           <button class="btn btn-sm btn-danger">
                             <i class="fas fa-trash"></i>
                             Delete
                           </button>
                         </a>
 
-                        <a href="ics_update.php?update=<?php echo $ics->ics_id; ?>">
+                        <a href="ics_update.php?update_item=<?php echo $ics->ics_id . '&item_id=' . $ics->item_id; ?>">
                           <button class="btn btn-sm btn-primary">
                             <i class="fas fa-user-edit"></i>
                             Update
@@ -147,16 +205,24 @@ require_once('partials/_head.php');
           </div>
         </div>
       </div>
+      
       <!-- Footer -->
-      <?php
-      require_once('partials/_mainfooter.php');
-      ?>
+      <?php require_once('partials/_mainfooter.php'); ?>
     </div>
   </div>
+  
   <!-- Argon Scripts -->
-  <?php
-  require_once('partials/_scripts.php');
-  ?>
+  <?php require_once('partials/_scripts.php'); ?>
+  
+  <style>
+    .table-responsive {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .btn-group {
+      display: flex;
+      gap: 5px;
+    }
+  </style>
 </body>
-
 </html>

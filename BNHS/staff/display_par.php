@@ -3,19 +3,84 @@ session_start();
 include('config/config.php');
 include('config/checklogin.php');
 check_login();
-//Delete Staff
+
+//Delete individual item
+if (isset($_GET['delete_item'])) {
+  $par_item_id = $_GET['delete_item'];
+  
+  // Start transaction
+  $mysqli->begin_transaction();
+  
+  try {
+    // First get the item_id from par_items
+    $stmt = $mysqli->prepare("SELECT item_id FROM par_items WHERE par_item_id = ?");
+    $stmt->bind_param('i', $par_item_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $item_id = $result->fetch_object()->item_id;
+    
+    // Delete from par_items
+    $stmt = $mysqli->prepare("DELETE FROM par_items WHERE par_item_id = ?");
+    $stmt->bind_param('i', $par_item_id);
+    $stmt->execute();
+    
+    // Delete from items
+    $stmt = $mysqli->prepare("DELETE FROM items WHERE item_id = ?");
+    $stmt->bind_param('i', $item_id);
+    $stmt->execute();
+    
+    // Commit transaction
+    $mysqli->commit();
+    $success = "Item Deleted Successfully";
+    header("refresh:1; url=display_par.php");
+  } catch (Exception $e) {
+    // Rollback transaction on error
+    $mysqli->rollback();
+    $err = "Error: " . $e->getMessage();
+    header("refresh:1; url=display_par.php");
+  }
+}
+
+//Delete par
 if (isset($_GET['delete'])) {
   $id = $_GET['delete'];
-  $adn = "DELETE FROM property_acknowledgment_receipts WHERE par_id = ?";
-  $stmt = $mysqli->prepare($adn);
-  $stmt->bind_param('s', $id);
-  $result = $stmt->execute();
-  $stmt->close();
-  if ($result) {
-    $success = "Deleted";
+  
+  // Start transaction
+  $mysqli->begin_transaction();
+  
+  try {
+    // Get all item_ids from par_items for this par
+    $stmt = $mysqli->prepare("SELECT item_id FROM par_items WHERE par_id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    // Delete from par_items first
+    $stmt = $mysqli->prepare("DELETE FROM par_items WHERE par_id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    
+    // Delete corresponding items
+    while ($row = $result->fetch_object()) {
+      $stmt = $mysqli->prepare("DELETE FROM items WHERE item_id = ?");
+      $stmt->bind_param('i', $row->item_id);
+      $stmt->execute();
+    }
+    
+    // Delete from inspection_acceptance_reports
+    $stmt = $mysqli->prepare("DELETE FROM property_acknowledgment_receipts WHERE par_id = ?");
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+    
+    // Commit transaction
+    $mysqli->commit();
+    $success = "Record Deleted Successfully";
     header("refresh:1; url=display_par.php");
-  } else {
-    $err = "Try Again Later";
+  } catch (Exception $e) {
+    // Rollback transaction on error
+    $mysqli->rollback();
+    $err = "Error: " . $e->getMessage();
+    header("refresh:1; url=display_par.php");
   }
 }
 require_once('partials/_head.php');
@@ -82,7 +147,7 @@ require_once('partials/_head.php');
                 </thead>
                 <tbody>
                   <?php
-                  $ret = "SELECT p.*, pi.quantity, pi.property_number, e.entity_name, e.fund_cluster, i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount 
+                  $ret = "SELECT p.*, pi.quantity, pi.property_number, pi.par_item_id, e.entity_name, e.fund_cluster, i.item_id, i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount 
                           FROM property_acknowledgment_receipts p 
                           JOIN par_items pi ON p.par_id = pi.par_id 
                           JOIN entities e ON p.entity_id = e.entity_id
@@ -111,15 +176,15 @@ require_once('partials/_head.php');
                       <td><?php echo $par->custodian_position; ?></td>
                       <td><?php echo $par->custodian_date; ?></td>
                       <td>
-                        <a href="display_par.php?delete=<?php echo $par->par_id; ?>" 
-                           onclick="return confirm('Are you sure you want to delete this record?')">
+                        <a href="display_par.php?delete_item=<?php echo $par->par_item_id; ?>" 
+                         >
                           <button class="btn btn-sm btn-danger">
                             <i class="fas fa-trash"></i>
                             Delete
                           </button>
                         </a>
 
-                        <a href="par_update.php?update=<?php echo $par->par_id; ?>">
+                        <a href="par_update.php?update_item=<?php echo $par->par_id . '&item_id=' . $par->item_id . '&par_item_id=' . $par->par_item_id; ?>">
                           <button class="btn btn-sm btn-primary">
                             <i class="fas fa-user-edit"></i>
                             Update

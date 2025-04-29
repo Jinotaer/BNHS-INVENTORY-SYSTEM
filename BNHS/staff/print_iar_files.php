@@ -3,6 +3,15 @@ session_start();
 include('config/config.php');
 require_once __DIR__ . '/assets/vendor/autoload.php';
 
+// Check if IAR ID is provided
+$iar_id = isset($_GET['iar_id']) ? intval($_GET['iar_id']) : 0;
+$item_id = isset($_GET['item_id']) ? intval($_GET['item_id']) : 0;
+
+if (!$iar_id) {
+    echo "No IAR ID provided. Please specify an IAR to print.";
+    exit;
+}
+
 $mpdf = new \Mpdf\Mpdf([
   'mode' => 'utf-8',
   'format' => 'A4',
@@ -117,6 +126,7 @@ ob_start();
       </div>
 
       <?php
+      // Modified query to get only the specific IAR
       $ret = "SELECT 
         iar.*, 
         e.entity_name, 
@@ -127,17 +137,39 @@ ob_start();
         i.unit,
         i.unit_cost as unit_price,
         ii.quantity,
-        ii.total_price
+        ii.total_price,
+        ii.iar_item_id,
+        ii.item_id
       FROM inspection_acceptance_reports iar
       JOIN entities e ON iar.entity_id = e.entity_id
       JOIN suppliers s ON iar.supplier_id = s.supplier_id
       JOIN iar_items ii ON iar.iar_id = ii.iar_id
       JOIN items i ON ii.item_id = i.item_id
-      ORDER BY iar.created_at DESC";
+      WHERE iar.iar_id = ?";
+      
+      // If item_id is provided, filter by it as well
+      $params = [$iar_id];
+      if ($item_id) {
+          $ret .= " AND i.item_id = ?";
+          $params[] = $item_id;
+      }
       
       $stmt = $mysqli->prepare($ret);
+      
+      if (count($params) === 1) {
+          $stmt->bind_param("i", $params[0]);
+      } else {
+          $stmt->bind_param("ii", $params[0], $params[1]);
+      }
+      
       $stmt->execute();
       $res = $stmt->get_result();
+      
+      if ($res->num_rows == 0) {
+          echo "No IAR found with ID: " . $iar_id;
+          exit;
+      }
+      
       $header_data = $res->fetch_object();
       ?>
 
@@ -187,12 +219,18 @@ ob_start();
                 <td class="tds"><?php echo htmlspecialchars($item->item_description ?? ''); ?></td>
                 <td class="tds"><?php echo htmlspecialchars($item->unit ?? ''); ?></td>
                 <td class="tds">
-                  Qty: <?php echo number_format($item->quantity ?? 0); ?><br>
-                  Cost: ₱<?php echo number_format($item->unit_price ?? 0, 2); ?><br>
-                  Total: ₱<?php echo number_format($item->total_price ?? 0, 2); ?>
+                   ₱<?php echo number_format($item->total_price ?? 0, 2); ?>
                 </td>
               </tr>
+              <tr>
+              <td class="tds" ></td>
+              <td class="tds" ></td>
+              <td class="tds" ></td>
+              <td class="tds" ></td>
+            </tr>
             <?php } ?>
+            <!-- Add blank row before total -->
+           
             <tr>
               <td colspan="3" class="text-end tds"><strong>TOTAL AMOUNT</strong></td>
               <td class="tds">₱<?php echo number_format($total_amount, 2); ?></td>
@@ -237,28 +275,7 @@ ob_start();
           </td>
         </tr>
       </table>
-
-      <div class="text-center mt-5">
-        <table width="100%">
-          <tr>
-            <td class="text-center">
-              <p>Certified Correct:</p>
-              <div class="signature-line"></div>
-              <p>Inventory Committee Chair</p>
-            </td>
-            <td class="text-center">
-              <p>Approved by:</p>
-              <div class="signature-line"></div>
-              <p>School Head / Admin Officer</p>
-            </td>
-            <td class="text-center">
-              <p>Verified by:</p>
-              <div class="signature-line"></div>
-              <p>COA Representative</p>
-            </td>
-          </tr>
-        </table>
-      </div>
+      
     </div>
   </div>
 </body>
@@ -268,5 +285,5 @@ ob_start();
 <?php
 $html = ob_get_clean();
 $mpdf->WriteHTML($html);
-$mpdf->Output("IAR_Report_" . date("Y_m_d") . ".pdf", 'I');
+$mpdf->Output("IAR_Report_" . $header_data->iar_no . "_" . date("Y_m_d") . ".pdf", 'I');
 ?>

@@ -120,7 +120,44 @@ require_once('partials/_head.php');
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Requisitioning Office/Dept.</label>
-                    <input style="color: #000000;" type="text" class="form-control" name="req_office" required>
+                    <select style="color: #000000;" class="form-control" name="req_office" required>
+                      <option value="">Select Requisitioning Office/Dept</option>
+                      <!-- Administrative Offices -->
+                      <optgroup label="Administrative Offices">
+                        <option value="Office of the Principal">Office of the Principal</option>
+                        <option value="Office of the Assistant Principal">Office of the Assistant Principal</option>
+                        <option value="Guidance Office">Guidance Office</option>
+                        <option value="Registrar's Office">Registrar's Office</option>
+                        <option value="Accounting Office">Accounting Office</option>
+                        <option value="Cashier's Office">Cashier's Office</option>
+                        <option value="IT Department">IT Department</option>
+                      </optgroup>
+
+                      <!-- Academic Departments -->
+                      <optgroup label="Academic Departments">
+                        <option value="High School Department">High School Department</option>
+                        <option value="HUMSS Department">HUMSS Department</option>
+                        <option value="GAS Department">GAS Department</option>
+                        <option value="TVL Department">TVL Department</option>
+                        <option value="STEM Department">STEM Department</option>
+                        <option value="ABM Department">ABM Department</option>
+                        <option value="ICT Department">ICT Department</option>
+                      </optgroup>
+
+                      <!-- Facilities -->
+                      <optgroup label="Facilities">
+                        <option value="Library">Library</option>
+                        <option value="Science Laboratory">Science Laboratory</option>
+                        <option value="Computer Laboratory">Computer Laboratory</option>
+                        <option value="Home Economics Room">Home Economics Room</option>
+                        <option value="Industrial Arts Room">Industrial Arts Room</option>
+                        <option value="Faculty Room">Faculty Room</option>
+                        <option value="Clinic">Clinic</option>
+                        <option value="Canteen">Canteen</option>
+                        <option value="Security Office">Security Office</option>
+                        <option value="Maintenance Office">Maintenance Office</option>
+                      </optgroup>
+                    </select>
                   </div>
                   <div class="col-md-4">
                     <label class="form-label">Responsibility Center</label>

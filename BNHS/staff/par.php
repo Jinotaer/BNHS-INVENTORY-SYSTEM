@@ -7,19 +7,22 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
   // Sanitize and collect form data
   function sanitize($data)
   {
+    if (is_array($data)) {
+      return array_map('sanitize', $data);
+    }
     return htmlspecialchars(trim($data));
   }
 
   $entity_name = sanitize($_POST['entity_name']);
   $fund_cluster = sanitize($_POST['fund_cluster']);
   $par_no = sanitize($_POST['par_no']);
-  $quantity = (int) $_POST['quantity'];
-  $unit = sanitize($_POST['unit']);
-  $item_description = sanitize($_POST['item_description']);
   $property_number = sanitize($_POST['property_number']);
+  $item_description = sanitize($_POST['item_description']);
+  $unit = sanitize($_POST['unit']);
+  $quantity = sanitize($_POST['quantity']);
+  $unit_cost = sanitize($_POST['unit_cost']);
+  $total_amount = isset($_POST['total_amount']) ? sanitize($_POST['total_amount']) : null;
   $date_acquired = sanitize($_POST['date_acquired']);
-  $unit_cost = (float) $_POST['unit_cost'];
-  $total_amount = $quantity * $unit_cost;
   $end_user_name = sanitize($_POST['end_user_name']);
   $receiver_position = sanitize($_POST['receiver_position']);
   $receiver_date = sanitize($_POST['receiver_date']);
@@ -32,11 +35,11 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
   if ($entity_stmt === false) {
     die("MySQL prepare failed: " . $mysqli->error);
   }
-  
+
   $entity_stmt->bind_param("s", $entity_name);
   $entity_stmt->execute();
   $entity_result = $entity_stmt->get_result();
-  
+
   if ($entity_result->num_rows > 0) {
     $row = $entity_result->fetch_assoc();
     $entity_id = $row['entity_id'];
@@ -77,57 +80,65 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
   if ($stmt->execute()) {
     $par_id = $mysqli->insert_id;
-    
-    // Get or create item_id for the item
-    $item_stmt = $mysqli->prepare("SELECT item_id FROM items WHERE item_description = ?");
-    if ($item_stmt === false) {
-      die("MySQL prepare failed: " . $mysqli->error);
-    }
-    
-    $item_stmt->bind_param("s", $item_description);
-    $item_stmt->execute();
-    $item_result = $item_stmt->get_result();
-    
-    if ($item_result->num_rows > 0) {
-      $row = $item_result->fetch_assoc();
-      $item_id = $row['item_id'];
-    } else {
-      // Create new item if not exists
-      $create_item = $mysqli->prepare("INSERT INTO items (item_description, unit, unit_cost) VALUES (?, ?, ?)");
-      if ($create_item === false) {
+
+    // Process all items in the PAR
+    for ($i = 0; $i < count($item_description); $i++) {
+      // Get or create item_id for the item
+      $item_stmt = $mysqli->prepare("SELECT item_id FROM items WHERE item_description = ?");
+      if ($item_stmt === false) {
         die("MySQL prepare failed: " . $mysqli->error);
       }
-      $create_item->bind_param("ssd", $item_description, $unit, $unit_cost);
-      $create_item->execute();
-      $item_id = $mysqli->insert_id;
-      $create_item->close();
+
+      $item_stmt->bind_param("s", $item_description[$i]);
+      $item_stmt->execute();
+      $item_result = $item_stmt->get_result();
+
+      if ($item_result->num_rows > 0) {
+        $row = $item_result->fetch_assoc();
+        $item_id = $row['item_id'];
+      } else {
+        // Create new item if not exists
+        $create_item = $mysqli->prepare("INSERT INTO items (item_description, unit, unit_cost) VALUES (?, ?, ?)");
+        if ($create_item === false) {
+          die("MySQL prepare failed: " . $mysqli->error);
+        }
+        $unit_cost_value = (float) $unit_cost[$i];
+        $create_item->bind_param("ssd", $item_description[$i], $unit[$i], $unit_cost_value);
+        $create_item->execute();
+        $item_id = $mysqli->insert_id;
+        $create_item->close();
+      }
+      $item_stmt->close();
+
+      // Insert into par_items
+      $par_item_stmt = $mysqli->prepare("INSERT INTO par_items (
+        par_id, item_id, quantity, property_number
+      ) VALUES (?, ?, ?, ?)");
+
+      if ($par_item_stmt === false) {
+        die("MySQL prepare failed: " . $mysqli->error);
+      }
+
+      $quantity_value = (int) $quantity[$i];
+      $par_item_stmt->bind_param(
+        "iiis",
+        $par_id,
+        $item_id,
+        $quantity_value,
+        $property_number[$i]
+      );
+
+      if (!$par_item_stmt->execute()) {
+        $err = "Error: " . $par_item_stmt->error;
+        break;
+      }
+
+      $par_item_stmt->close();
     }
-    $item_stmt->close();
     
-    // Insert into par_items
-    $par_item_stmt = $mysqli->prepare("INSERT INTO par_items (
-      par_id, item_id, quantity, property_number
-    ) VALUES (?, ?, ?, ?)");
-    
-    if ($par_item_stmt === false) {
-      die("MySQL prepare failed: " . $mysqli->error);
-    }
-    
-    $par_item_stmt->bind_param(
-      "iiis",
-      $par_id,
-      $item_id,
-      $quantity,
-      $property_number
-    );
-    
-    if ($par_item_stmt->execute()) {
+    if (!isset($err)) {
       $success = "Property Acknowledgment Receipt Created Successfully";
-    } else {
-      $err = "Error: " . $par_item_stmt->error;
     }
-    
-    $par_item_stmt->close();
   } else {
     $err = "Error: " . $stmt->error;
   }
@@ -194,62 +205,109 @@ require_once('partials/_head.php');
                 <li><a class="dropdown-item" href="ics.php">Inventory Custodian Slip</a></li>
               </ul>
             </div>
+            <style>
+              .form-section {
+                margin-top: 20px;
+                margin-bottom: 30px;
+              }
 
+              .items-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 15px;
+              }
+
+              .items-table th {
+                background-color: #5e72e4;
+                color: white;
+                padding: 12px 10px;
+                text-align: center;
+                border: 1px solid #4e61c8;
+                font-weight: 600;
+                font-size: 14px;
+              }
+              .items-table td {
+                padding: 10px 8px;
+                border: 1px solid #dee2e6;
+                vertical-align: middle;
+              }
+              .items-table tbody tr:nth-child(even) {
+                background-color: #f8f9fa;
+              }
+              .items-table tbody tr:hover {
+                background-color: #f0f2f5;
+              }
+              .underline-input {
+                width: 100%;
+                padding: 8px;
+                border: none;
+                border-bottom: 1px solid #ced4da;
+                background-color: transparent;
+                transition: all 0.2s ease-in-out;
+              }
+              .underline-input:focus {
+                outline: none;
+                border-bottom: 2px solid #5e72e4;
+                box-shadow: 0 4px 6px -1px rgba(94, 114, 228, 0.1);
+              }
+              .btn-add-row {
+                background-color: #2dce89;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 5px;
+                margin-top: 10px;
+                cursor: pointer;
+                transition: background-color 0.2s;
+              }
+              .btn-add-row:hover {
+                background-color: #26af74;
+              }
+              .btn-danger {
+                padding: 5px 10px;
+                font-size: 12px;
+              }
+              input[readonly] {
+                background-color: #f8f9fa;
+              }
+              .is-invalid {
+                border-color: #dc3545 !important;
+                box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, .25);
+              }
+              .invalid-feedback {
+                color: #dc3545;
+                font-size: 0.875em;
+                margin-top: 0.25rem;
+              }
+            </style>  
 
             <div class="card-body ">
-
               <form method="POST" role="form" class="border border-light p-4 rounded">
                 <div class="container mt-4">
                   <h2 class="text-center mb-4 text-uppercase"> Purchase Acceptance Report</h2>
                   <!-- Entity Info -->
                   <div class="row mt-3 mb-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                       <label>Entity Name</label>
                       <input style="color: #000000;" type="text" class="form-control" name="entity_name" required>
                     </div>
-                    <div class="col-md-4">
-                      <label>Fund Cluster</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="fund_cluster" required>
+                    <div class="col-md-3">
+                      <label class="form-label">Fund Cluster</label>
+                      <select style="color: #000000;" class="form-control<?php if (isset($errors['fund_cluster'])) echo ' is-invalid'; ?>" name="fund_cluster" required>
+                        <option value="">Select Fund Cluster</option>
+                        <option value="Division">Division</option>
+                        <option value="MCE">MCE</option>
+                        <option value="MOE">MOE</option>
+                      </select>
+                      <?php if (isset($errors['fund_cluster'])): ?><div class="invalid-feedback"><?php echo $errors['fund_cluster']; ?></div><?php endif; ?>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                       <label>PAR No.</label>
                       <input style="color: #000000;" type="text" class="form-control" name="par_no" required>
                     </div>
-                  </div>
-
-                  <!-- Item Info -->
-                  <div class="row mb-3">
-                    <div class="col-md-2">
-                      <label>Quantity</label>
-                      <input style="color: #000000;" type="number" class="form-control" name="quantity">
-                    </div>
-                    <div class="col-md-2">
-                      <label>Unit</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="unit">
-                    </div>
-                    <div class="col-md-4">
-                      <label>Description</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="item_description">
-                    </div>
-                    <div class="col-md-4">
-                      <label>Property Number</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="property_number">
-                    </div>
-                  </div>
-
-                  <div class="row mb-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                       <label>Date Acquired</label>
                       <input style="color: #000000;" type="date" class="form-control" name="date_acquired">
-                    </div>
-                    <div class="col-md-4">
-                      <label>Unit Cost</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="unit_cost">
-                    </div>
-                    <div class="col-md-4">
-                      <label class="form-label">Total Amount</label>
-                      <input style="color: #000000; background-color: white;" type="text" class="form-control"
-                        name="total_amount" readonly>
                     </div>
                   </div>
 
@@ -286,6 +344,46 @@ require_once('partials/_head.php');
                       <input style="color: #000000;" type="date" class="form-control" name="custodian_date">
                     </div>
                   </div>
+                  <div class="form-section" style="margin-top: 20px; border: 1px solid #dee2e6; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+                    <h4 class="mb-3">Item Details</h4>
+                    <table class="items-table">
+                      <thead>
+                        <tr>
+                          <th>Stock / Property No.</th>
+                          <th>Item Description</th>
+                          <th>Unit</th>
+                          <th>Quantity</th>
+                          <th>Unit Cost</th>
+                          <th>Total Amount</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="itemsTableBody">
+                        <tr>
+                          <td><input type="text" name="property_number[]" class="underline-input"></td>
+                          <td><input type="text" name="item_description[]" class="underline-input<?php if (isset($errors['item_description'])) echo ' is-invalid'; ?>"></td>
+                          <td>
+                            <select name="unit[]" class="underline-input">
+                              <option value="">Select Unit</option>
+                              <option value="box">box</option>
+                              <option value="pieces">pieces</option>
+                            </select>
+                          </td>
+                          <td><input type="number" name="quantity[]" class="underline-input" min="1" oninput="calculateRowTotal(this.parentNode.nextElementSibling.querySelector('input'))"></td>
+                          <td><input type="number" name="unit_cost[]" class="underline-input" min="0" step="0.01" oninput="calculateRowTotal(this)"></td>
+                          <td><input type="number" name="total_amount[]" class="underline-input" min="0" step="0.01" readonly></td>
+                          <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
+                        </tr>
+                        <?php if (isset($errors['item_description'])): ?><tr>
+                            <td colspan="8">
+                              <div class="invalid-feedback d-block"><?php echo $errors['item_description']; ?></div>
+                            </td>
+                          </tr><?php endif; ?>
+                      </tbody>
+                    </table>
+                    <button type="button" class="btn btn-add-row" onclick="addItemRow()" style="margin-top: 15px; float: right;"><i class="fas fa-plus mr-2"></i> Add Item</button>
+                    <div style="clear: both;"></div>
+                  </div>
 
                   <div class="text-end mt-3">
                     <button type="submit" class="btn btn-primary">Submit</button>
@@ -309,23 +407,72 @@ require_once('partials/_head.php');
   require_once('partials/_scripts.php');
   ?>
 </body>
-
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const qtyInput = document.querySelector('[name="quantity"]');
-    const priceInput = document.querySelector('[name="unit_cost"]');
-    const totalInput = document.querySelector('[name="total_amount"]');
+  document.addEventListener("DOMContentLoaded", function() {
+    // Initialize calculation for any existing rows
+    const quantityInputs = document.querySelectorAll('input[name="quantity[]"]');
+    const unitCostInputs = document.querySelectorAll('input[name="unit_cost[]"]');
 
-    function updateTotal() {
-      const qty = parseFloat(qtyInput.value) || 0;
-      const price = parseFloat(priceInput.value) || 0;
-      totalInput.value = (qty * price).toFixed(2);
-    }
-
-    if (qtyInput && priceInput && totalInput) {
-      qtyInput.addEventListener("input", updateTotal);
-      priceInput.addEventListener("input", updateTotal);
+    for (let i = 0; i < quantityInputs.length; i++) {
+      if (quantityInputs[i] && unitCostInputs[i]) {
+        quantityInputs[i].addEventListener('input', function() {
+          calculateRowTotal(unitCostInputs[i]);
+        });
+        unitCostInputs[i].addEventListener('input', function() {
+          calculateRowTotal(this);
+        });
+      }
     }
   });
 </script>
+
+<script>
+  function addItemRow() {
+    const tbody = document.getElementById('itemsTableBody');
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+      <td><input type="text" name="property_number[]" class="underline-input"></td>
+      <td><input type="text" name="item_description[]" class="underline-input"></td>
+      <td>
+        <select name="unit[]" class="underline-input">
+          <option value="">Select Unit</option>
+          <option value="box">box</option>
+          <option value="pieces">pieces</option>
+        </select>
+      </td>
+      <td><input type="number" name="quantity[]" class="underline-input" min="1"></td>
+      <td><input type="number" name="unit_cost[]" class="underline-input" min="0" step="0.01"></td>
+      <td><input type="number" name="total_amount[]" class="underline-input" min="0" step="0.01" readonly></td>
+      <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
+    `;
+    tbody.appendChild(newRow);
+
+    // Add event listeners for the new row
+    const quantityInput = newRow.querySelector('input[name="quantity[]"]');
+    const unitCostInput = newRow.querySelector('input[name="unit_cost[]"]');
+    quantityInput.addEventListener('input', function() {
+      calculateRowTotal(unitCostInput);
+    });
+    unitCostInput.addEventListener('input', function() {
+      calculateRowTotal(unitCostInput);
+    });
+  }
+
+  function removeRow(button) {
+    const row = button.closest('tr');
+    if (document.querySelectorAll('#itemsTableBody tr').length > 1) {
+      row.remove();
+    } else {
+      alert('Cannot remove the last row');
+    }
+  }
+
+  function calculateRowTotal(input) {
+    const row = input.closest('tr');
+    const quantity = parseFloat(row.querySelector('input[name="quantity[]"]').value) || 0;
+    const unitCost = parseFloat(row.querySelector('input[name="unit_cost[]"]').value) || 0;
+    row.querySelector('input[name="total_amount[]"]').value = (quantity * unitCost).toFixed(2);
+  }
+</script>
+
 </html>

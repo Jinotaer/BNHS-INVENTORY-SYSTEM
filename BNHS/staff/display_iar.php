@@ -4,6 +4,43 @@ include('config/config.php');
 include('config/checklogin.php');
 check_login();
 
+//Delete individual item
+if (isset($_GET['delete_item'])) {
+  $iar_item_id = $_GET['delete_item'];
+  
+  // Start transaction
+  $mysqli->begin_transaction();
+  
+  try {
+    // First get the item_id from iar_items
+    $stmt = $mysqli->prepare("SELECT item_id FROM iar_items WHERE iar_item_id = ?");
+    $stmt->bind_param('i', $iar_item_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $item_id = $result->fetch_object()->item_id;
+    
+    // Delete from iar_items
+    $stmt = $mysqli->prepare("DELETE FROM iar_items WHERE iar_item_id = ?");
+    $stmt->bind_param('i', $iar_item_id);
+    $stmt->execute();
+    
+    // Delete from items
+    $stmt = $mysqli->prepare("DELETE FROM items WHERE item_id = ?");
+    $stmt->bind_param('i', $item_id);
+    $stmt->execute();
+    
+    // Commit transaction
+    $mysqli->commit();
+    $success = "Item Deleted Successfully";
+    header("refresh:1; url=display_iar.php");
+  } catch (Exception $e) {
+    // Rollback transaction on error
+    $mysqli->rollback();
+    $err = "Error: " . $e->getMessage();
+    header("refresh:1; url=display_iar.php");
+  }
+}
+
 //Delete IAR
 if (isset($_GET['delete'])) {
   $id = $_GET['delete'];
@@ -12,22 +49,23 @@ if (isset($_GET['delete'])) {
   $mysqli->begin_transaction();
   
   try {
-    // First get the item_id from iar_items
+    // Get all item_ids from iar_items for this IAR
     $stmt = $mysqli->prepare("SELECT item_id FROM iar_items WHERE iar_id = ?");
     $stmt->bind_param('i', $id);
     $stmt->execute();
     $result = $stmt->get_result();
-    $item_id = $result->fetch_object()->item_id;
     
-    // Delete from iar_items
+    // Delete from iar_items first
     $stmt = $mysqli->prepare("DELETE FROM iar_items WHERE iar_id = ?");
     $stmt->bind_param('i', $id);
     $stmt->execute();
     
-    // Delete from items
-    $stmt = $mysqli->prepare("DELETE FROM items WHERE item_id = ?");
-    $stmt->bind_param('i', $item_id);
-    $stmt->execute();
+    // Delete corresponding items
+    while ($row = $result->fetch_object()) {
+      $stmt = $mysqli->prepare("DELETE FROM items WHERE item_id = ?");
+      $stmt->bind_param('i', $row->item_id);
+      $stmt->execute();
+    }
     
     // Delete from inspection_acceptance_reports
     $stmt = $mysqli->prepare("DELETE FROM inspection_acceptance_reports WHERE iar_id = ?");
@@ -76,11 +114,11 @@ require_once('partials/_head.php');
               <div class="col">
                 <h2 class="text-center mb-3 pt-3 text-uppercase">Inspection and Acceptance Report</h2>
               </div>
-              <div class="col text-right">
+              <!-- <div class="col text-right">
                 <a target="_blank" href="print_iar_files.php" class="btn btn-sm btn-primary">
                   <i class="fas fa-print"></i> Print files
                 </a>
-              </div>
+              </div> -->
             </div>
 
             <div class="table-responsive">
@@ -125,9 +163,12 @@ require_once('partials/_head.php');
                     i.stock_no,
                     i.item_description,
                     i.unit,
+                    i.item_id,
+                    ii.iar_item_id,
                     ii.quantity,
                     ii.unit_price,
-                    ii.total_price
+                    ii.total_price,
+                    ii.remarks
                   FROM inspection_acceptance_reports iar
                   JOIN entities e ON iar.entity_id = e.entity_id
                   JOIN suppliers s ON iar.supplier_id = s.supplier_id
@@ -168,20 +209,25 @@ require_once('partials/_head.php');
                       <td><?php echo date('M d, Y', strtotime($iar->date_received)); ?></td>
                       <td><?php echo htmlspecialchars($iar->property_custodian); ?></td>
                       <td>
-                      <a href="display_iar.php?delete=<?php echo $iar->iar_id; ?>">
+                        <a href="display_iar.php?delete_item=<?php echo $iar->iar_item_id; ?>">
                           <button class="btn btn-sm btn-danger">
                             <i class="fas fa-trash"></i>
                             Delete
                           </button>
                         </a>
 
-                        <a href="iar_update.php?update=<?php echo $iar->iar_id; ?>">
+                        <a href="iar_update.php?update_item=<?php echo $iar->iar_id . '&item_id=' . $iar->item_id . '&iar_item_id=' . $iar->iar_item_id; ?>">
                           <button class="btn btn-sm btn-primary">
                             <i class="fas fa-user-edit"></i>
                             Update
                           </button>
                         </a>
-                        </div>
+                        <a href="print_iar_files.php?iar_id=<?php echo $iar->iar_id . '&item_id=' . $iar->item_id . '&iar_item_id=' . $iar->iar_item_id; ?>" target="_blank">
+                          <button class="btn btn-sm btn-primary">
+                            <i class="fas fa-print"></i>
+                            print file
+                          </button>
+                        </a>
                       </td>
                     </tr>
                   <?php } ?>

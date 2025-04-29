@@ -10,6 +10,36 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
     return htmlspecialchars(trim($data));
   }
 
+  // Store form values in session
+  $_SESSION['form_values'] = [
+    'entity_name' => $_POST['entity_name'],
+    'fund_cluster' => $_POST['fund_cluster'],
+    'division' => $_POST['division'],
+    'office' => $_POST['office'],
+    'responsibility_code' => $_POST['responsibility_code'],
+    'ris_no' => $_POST['ris_no'],
+    'purpose' => $_POST['purpose'],
+    'requested_by_name' => $_POST['requested_by_name'],
+    'requested_by_designation' => $_POST['requested_by_designation'],
+    'requested_by_date' => $_POST['requested_by_date'],
+    'approved_by_name' => $_POST['approved_by_name'],
+    'approved_by_designation' => $_POST['approved_by_designation'],
+    'approved_by_date' => $_POST['approved_by_date'],
+    'issued_by_name' => $_POST['issued_by_name'],
+    'issued_by_designation' => $_POST['issued_by_designation'],
+    'issued_by_date' => $_POST['issued_by_date'],
+    'received_by_name' => $_POST['received_by_name'],
+    'received_by_designation' => $_POST['received_by_designation'],
+    'received_by_date' => $_POST['received_by_date'],
+    'stock_no' => $_POST['stock_no'],
+    'item_description' => $_POST['item_description'],
+    'unit' => $_POST['unit'],
+    'requested_qty' => $_POST['requested_qty'],
+    'stock_available' => $_POST['stock_available'],
+    'issue_qty' => $_POST['issue_qty'],
+    'remarks' => $_POST['remarks']
+  ];
+
   $entity_name = sanitize($_POST['entity_name']);
   $fund_cluster = sanitize($_POST['fund_cluster']);
   $division = sanitize($_POST['division']);
@@ -18,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
   $ris_no = sanitize($_POST['ris_no']);
   $purpose = sanitize($_POST['purpose']);
   $requested_by_name = sanitize($_POST['requested_by_name']);
-  $requested_by_designation =  sanitize($_POST['requested_by_designation']);
+  $requested_by_designation = sanitize($_POST['requested_by_designation']);
   $requested_by_date = sanitize($_POST['requested_by_date']);
   $approved_by_name = sanitize($_POST['approved_by_name']);
   $approved_by_designation = sanitize($_POST['approved_by_designation']);
@@ -26,18 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
   $issued_by_name = sanitize($_POST['issued_by_name']);
   $issued_by_designation = sanitize($_POST['issued_by_designation']);
   $issued_by_date = sanitize($_POST['issued_by_date']);
-  $received_by_name= sanitize($_POST['received_by_name']);
+  $received_by_name = sanitize($_POST['received_by_name']);
   $received_by_designation = sanitize($_POST['received_by_designation']);
   $received_by_date = sanitize($_POST['received_by_date']);
-  
-  // Item details
-  $stock_no = sanitize($_POST['stock_no']);
-  $unit = sanitize($_POST['unit']);
-  $item_description = sanitize($_POST['item_description']);
-  $requested_qty = (int)sanitize($_POST['requested_qty']);
-  $stock_available = sanitize($_POST['stock_available']);
-  $issued_qty = (int)sanitize($_POST['issued_qty']);
-  $remarks = sanitize($_POST['remarks']);
 
   // Start transaction for related tables
   $mysqli->begin_transaction();
@@ -59,7 +80,6 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
       $create_entity->execute();
       $entity_id = $mysqli->insert_id;
       
-      // Check if the entity was created successfully
       if ($entity_id <= 0) {
         throw new Exception("Failed to create entity. " . $mysqli->error);
       }
@@ -97,6 +117,17 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
       throw new Exception("Failed to get RIS ID after insertion. " . $mysqli->error);
     }
     
+    // Process multiple items
+    if (isset($_POST['stock_no']) && is_array($_POST['stock_no'])) {
+      foreach ($_POST['stock_no'] as $index => $stock_no) {
+        $stock_no = sanitize($stock_no);
+        $item_description = sanitize($_POST['item_description'][$index]);
+        $unit = sanitize($_POST['unit'][$index]);
+        $requested_qty = (int)sanitize($_POST['requested_qty'][$index]);
+        $stock_available = sanitize($_POST['stock_available'][$index]);
+        $issued_qty = (int)sanitize($_POST['issue_qty'][$index]);
+        $remarks = sanitize($_POST['remarks'][$index]);
+    
     // Get or create item
     $item_stmt = $mysqli->prepare("SELECT item_id FROM items WHERE stock_no = ? LIMIT 1");
     $item_stmt->bind_param("s", $stock_no);
@@ -107,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
       $item_row = $item_result->fetch_assoc();
       $item_id = $item_row['item_id'];
     } else {
-      // Create new item if not found - using default unit cost of 0 (should be updated later)
+          // Create new item if not found
       $create_item = $mysqli->prepare("INSERT INTO items (stock_no, item_description, unit, unit_cost) VALUES (?, ?, ?, 0)");
       $create_item->bind_param("sss", $stock_no, $item_description, $unit);
       if (!$create_item->execute()) {
@@ -126,26 +157,33 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
     ) VALUES (?, ?, ?, ?, ?, ?)");
     
     $ris_item_stmt->bind_param(
-      "iiisis",
+          "iissss",
       $ris_id, $item_id, $requested_qty, $stock_available, $issued_qty, $remarks
     );
     
     if (!$ris_item_stmt->execute()) {
       throw new Exception("Failed to insert RIS item: " . $ris_item_stmt->error);
+        }
+      }
     }
     
     // Commit transaction
     $mysqli->commit();
     $success = "Requisition and Issue Slip Created Successfully";
+    // Clear session values on success
+    unset($_SESSION['form_values']);
     header("refresh:1; url=ris.php");
     
-  } catch (Exception $e) {
+  } catch (Exception $e) {  
     // Roll back transaction on error
     $mysqli->rollback();
     $err = "Error: " . $e->getMessage();
     header("refresh:1; url=ris.php");
   }
 }
+
+// Get stored form values if they exist
+$form_values = $_SESSION['form_values'] ?? [];
 
 require_once('partials/_head.php');
 ?>
@@ -206,150 +244,294 @@ require_once('partials/_head.php');
               </ul>
             </div>
 
+          
+            <style>
+              .form-section {
+                margin-top: 20px;
+                margin-bottom: 30px;
+              }
+              .items-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 15px;
+              }
+              .items-table th {
+                background-color: #5e72e4;
+                color: white;
+                padding: 12px 10px;
+                text-align: center;
+                border: 1px solid #4e61c8;
+                font-weight: 600;
+                font-size: 14px;
+              }
+              .items-table td {
+                padding: 10px 8px;
+                border: 1px solid #dee2e6;
+                vertical-align: middle;
+              }
+              .items-table tbody tr:nth-child(even) {
+                background-color: #f8f9fa;
+              }
+              .items-table tbody tr:hover {
+                background-color: #f0f2f5;
+              }
+              .underline-input {
+                width: 100%;
+                padding: 8px;
+                border: none;
+                border-bottom: 1px solid #ced4da;
+                background-color: transparent;
+                transition: all 0.2s ease-in-out;
+              }
+              .underline-input:focus {
+                outline: none;
+                border-bottom: 2px solid #5e72e4;
+                box-shadow: 0 4px 6px -1px rgba(94,114,228,0.1);
+              }
+              .btn-add-row {
+                background-color: #2dce89;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 5px;
+                margin-top: 10px;
+                cursor: pointer;
+                transition: background-color 0.2s;
+              }
+              .btn-add-row:hover {
+                background-color: #26af74;
+              }
+              .btn-danger {
+                padding: 5px 10px;
+                font-size: 12px;
+              }
+              input[readonly] {
+                background-color: #f8f9fa;
+              }
+              .is-invalid {
+                border-color: #dc3545 !important;
+                box-shadow: 0 0 0 0.2rem rgba(220,53,69,.25);
+              }
+              .invalid-feedback {
+                color: #dc3545;
+                font-size: 0.875em;
+                margin-top: 0.25rem;
+              }
+            </style>
 
             <div class="card-body ">
               <form method="POST" role="form" class="border border-light p-4 rounded">
                 <div class="container mt-4">
                   <h2 class="text-center mb-4 text-uppercase">Requisition and Issue Slip</h2>
 
-                  <div class="row mb-3">
-                    <div class="col-md-3">
+                  <div class="row mb-4">
+                    <div class="col-md-4">
                       <label class="form-label">Entity Name</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="entity_name" required>
+                      <input style="color: #000000;" type="text" class="form-control" name="entity_name" value="<?php echo isset($form_values['entity_name']) ? htmlspecialchars($form_values['entity_name']) : ''; ?>" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Fund Cluster</label>
-                      <input type="text" class="form-control" name="fund_cluster" required>
+                      <select style="color: #000000;" class="form-control<?php if(isset($errors['fund_cluster'])) echo ' is-invalid'; ?>" name="fund_cluster" required>
+                        <option value="">Select Fund Cluster</option>
+                        <option value="MOE" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'MOOE') ? 'selected' : ''; ?>>MOE</option>
+                        <option value="Division" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'Division') ? 'selected' : ''; ?>>Division</option>
+                        <option value="MCE" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'MCE') ? 'selected' : ''; ?>>MCE</option>
+                        <option value="SHS" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'SHS') ? 'selected' : ''; ?>>SHS</option>
+                        <option value="JHS" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'JHS') ? 'selected' : ''; ?>>JHS</option>
+                        <option value="SPED" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'SPED') ? 'selected' : ''; ?>>SPED</option>
+                        <option value="ALS" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'ALS') ? 'selected' : ''; ?>>ALS</option>
+                      </select>
+                      <?php if(isset($errors['fund_cluster'])): ?><div class="invalid-feedback"><?php echo $errors['fund_cluster']; ?></div><?php endif; ?>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Division</label>
-                      <input type="text" class="form-control" name="division" required>
+                      <input style="color: #000000;" type="text" class="form-control" name="division" value="<?php echo isset($form_values['division']) ? htmlspecialchars($form_values['division']) : ''; ?>" required>
                     </div>
-                    <div class="col-md-3">
-                      <label class="form-label">Office</label>
-                      <input type="text" class="form-control" name="office" required>
-                    </div>
-                  
+
                   </div>
 
-                  <div class="row mb-3">
-                  <div class="col-md-3">
+                  <div class="row mb-4">
+                  <div class="col-md-4">
+                      <label class="form-label">Office</label>
+                      <select style="color: #000000;" class="form-control<?php if(isset($errors['office'])) echo ' is-invalid'; ?>" name="office" required>
+                        <option value="">Select Office</option>
+                        <!-- Administrative Offices -->
+                        <optgroup label="Administrative Offices">
+                          <option value="Office of the Principal" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Office of the Principal') ? 'selected' : ''; ?>>Office of the Principal</option>
+                          <option value="Office of the Assistant Principal" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Office of the Assistant Principal') ? 'selected' : ''; ?>>Office of the Assistant Principal</option>
+                          <option value="Guidance Office" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Guidance Office') ? 'selected' : ''; ?>>Guidance Office</option>
+                          <option value="Registrar's Office" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Registrar\'s Office') ? 'selected' : ''; ?>>Registrar's Office</option>
+                          <option value="Accounting Office" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Accounting Office') ? 'selected' : ''; ?>>Accounting Office</option>
+                          <option value="Cashier's Office" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Cashier\'s Office') ? 'selected' : ''; ?>>Cashier's Office</option>
+                          <option value="IT Department" <?php echo (isset($form_values['office']) && $form_values['office'] == 'IT Department') ? 'selected' : ''; ?>>IT Department</option>
+                        </optgroup>
+
+                        <!-- Academic Departments -->
+                        <optgroup label="Academic Departments">
+                          <option value="High School Department" <?php echo (isset($form_values['office']) && $form_values['office'] == 'High School Department') ? 'selected' : ''; ?>>High School Department</option>
+                          <option value="HUMSS Department" <?php echo (isset($form_values['office']) && $form_values['office'] == 'HUMSS Department') ? 'selected' : ''; ?>>HUMSS Department</option>
+                          <option value="GAS Department" <?php echo (isset($form_values['office']) && $form_values['office'] == 'GAS Department') ? 'selected' : ''; ?>>GAS Department</option>
+                          <option value="TVL Department" <?php echo (isset($form_values['office']) && $form_values['office'] == 'TVL Department') ? 'selected' : ''; ?>>TVL Department</option>
+                          <option value="STEM Department" <?php echo (isset($form_values['office']) && $form_values['office'] == 'STEM Department') ? 'selected' : ''; ?>>STEM Department</option>
+                          <option value="ABM Department" <?php echo (isset($form_values['office']) && $form_values['office'] == 'ABM Department') ? 'selected' : ''; ?>>ABM Department</option>
+                          <option value="ICT Department" <?php echo (isset($form_values['office']) && $form_values['office'] == 'ICT Department') ? 'selected' : ''; ?>>ICT Department</option>
+                        </optgroup>
+
+                        <!-- Facilities -->
+                        <optgroup label="Facilities">
+                          <option value="Library" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Library') ? 'selected' : ''; ?>>Library</option>
+                          <option value="Science Laboratory" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Science Laboratory') ? 'selected' : ''; ?>>Science Laboratory</option>
+                          <option value="Computer Laboratory" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Computer Laboratory') ? 'selected' : ''; ?>>Computer Laboratory</option>
+                          <option value="Home Economics Room" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Home Economics Room') ? 'selected' : ''; ?>>Home Economics Room</option>
+                          <option value="Industrial Arts Room" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Industrial Arts Room') ? 'selected' : ''; ?>>Industrial Arts Room</option>
+                          <option value="Faculty Room" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Faculty Room') ? 'selected' : ''; ?>>Faculty Room</option>
+                          <option value="Clinic" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Clinic') ? 'selected' : ''; ?>>Clinic</option>
+                          <option value="Canteen" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Canteen') ? 'selected' : ''; ?>>Canteen</option>
+                          <option value="Security Office" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Security Office') ? 'selected' : ''; ?>>Security Office</option>
+                          <option value="Maintenance Office" <?php echo (isset($form_values['office']) && $form_values['office'] == 'Maintenance Office') ? 'selected' : ''; ?>>Maintenance Office</option>
+                        </optgroup>
+                      </select>
+                      <?php if(isset($errors['office'])): ?><div class="invalid-feedback"><?php echo $errors['office']; ?></div><?php endif; ?>
+                    </div>
+                  <div class="col-md-4">
                       <label class="form-label">Responsibility Center Code</label>
-                      <input type="text" class="form-control" name="responsibility_code" required>
+                      <input style="color: #000000;"type="text" class="form-control" name="responsibility_code" value="<?php echo isset($form_values['responsibility_code']) ? htmlspecialchars($form_values['responsibility_code']) : ''; ?>" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">RIS No.</label>
-                      <input type="text" class="form-control" name="ris_no" required>
+                      <input style="color: #000000;" type="text" class="form-control" name="ris_no" value="<?php echo isset($form_values['ris_no']) ? htmlspecialchars($form_values['ris_no']) : ''; ?>" required>
                     </div>
-                    <div class="col-md-3">
-                      <label class="form-label">Stock No.</label>
-                      <input type="text" class="form-control" name="stock_no" required>
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label">Unit</label>
-                      <input type="text" class="form-control" name="unit" required>
-                    </div>
+                 
                  
                   </div>
 
-                  <div class="row mb-3">
-                  <div class="col-md-3">
-                      <label class="form-label">Item Description</label>
-                      <input type="text" style="color: #000000;" class="form-control" name="item_description" required>
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label">Requested Quantity</label>
-                      <input type="number" style="color: #000000;" class="form-control" name="requested_qty" required>
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label">Stock Available (Yes/No)</label>
-                      <select style="color: #000000;" class="form-control" name="stock_available" required>
-                        <option value="yes">Yes</option>
-                        <option value="no">No</option>
-                      </select>
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label">Issued Quantity</label>
-                      <input type="number" style="color: #000000;" class="form-control" name="issued_qty" required>
-                    </div>
-                    
-                  </div>
+                
 
-                  <div class="row mb-3">
-                  <div class="col-md-3">
-                      <label class="form-label">Remarks</label>
-                      <input type="text" style="color: #000000;" class="form-control" name="remarks">
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label">Purpose</label>
-                      <input type="text" style="color: #000000;" class="form-control" name="purpose" required>
-                    </div>
-                  </div>
+            
 
                   <h5 class="mt-4">Requested By</h5>
                   <div class="row mb-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Name</label>
-                      <input type="text" style="color: #000000;" class="form-control" name="requested_by_name" required>
+                      <input type="text" style="color: #000000;" class="form-control" name="requested_by_name" value="<?php echo isset($form_values['requested_by_name']) ? htmlspecialchars($form_values['requested_by_name']) : ''; ?>" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Designation</label>
-                      <input type="text" style="color: #000000;" class="form-control" name="requested_by_designation" required>
+                      <input type="text" style="color: #000000;" class="form-control" name="requested_by_designation" value="<?php echo isset($form_values['requested_by_designation']) ? htmlspecialchars($form_values['requested_by_designation']) : ''; ?>" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Date</label>
-                      <input type="date" style="color: #000000;" class="form-control" name="requested_by_date" required>
+                      <input type="date" style="color: #000000;" class="form-control" name="requested_by_date" value="<?php echo isset($form_values['requested_by_date']) ? htmlspecialchars($form_values['requested_by_date']) : ''; ?>" required>
                     </div>
                   </div>
 
                   <h5>Approved By</h5>
                   <div class="row mb-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Name</label>
-                      <input type="text" style="color: #000000;" class="form-control" name="approved_by_name" required>
+                      <input type="text" style="color: #000000;" class="form-control" name="approved_by_name" value="<?php echo isset($form_values['approved_by_name']) ? htmlspecialchars($form_values['approved_by_name']) : ''; ?>" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Designation</label>
-                      <input type="text" style="color: #000000;" class="form-control" name="approved_by_designation" required>
+                      <input type="text" style="color: #000000;" class="form-control" name="approved_by_designation" value="<?php echo isset($form_values['approved_by_designation']) ? htmlspecialchars($form_values['approved_by_designation']) : ''; ?>" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Date</label>
-                      <input type="date" style="color: #000000;" class="form-control" name="approved_by_date" required>
+                      <input type="date" style="color: #000000;" class="form-control" name="approved_by_date" value="<?php echo isset($form_values['approved_by_date']) ? htmlspecialchars($form_values['approved_by_date']) : ''; ?>" required>
                     </div>
                   </div>
 
                   <h5>Issued By</h5>
                   <div class="row mb-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Name</label>
-                      <input type="text" style="color: #000000;" class="form-control" name="issued_by_name" required>
+                      <input type="text" style="color: #000000;" class="form-control" name="issued_by_name" value="<?php echo isset($form_values['issued_by_name']) ? htmlspecialchars($form_values['issued_by_name']) : ''; ?>" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Designation</label>
-                      <input type="text" style="color: #000000;" class="form-control" name="issued_by_designation" required>
+                      <input type="text" style="color: #000000;" class="form-control" name="issued_by_designation" value="<?php echo isset($form_values['issued_by_designation']) ? htmlspecialchars($form_values['issued_by_designation']) : ''; ?>" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Date</label>
-                      <input type="date" style="color: #000000;" class="form-control" name="issued_by_date" required>
+                      <input type="date" style="color: #000000;" class="form-control" name="issued_by_date" value="<?php echo isset($form_values['issued_by_date']) ? htmlspecialchars($form_values['issued_by_date']) : ''; ?>" required>
                     </div>
                   </div>
 
                   <h5>Received By</h5>
                   <div class="row mb-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Name</label>
-                      <input type="text" style="color: #000000;" class="form-control" name="received_by_name" required>
+                      <input type="text" style="color: #000000;" class="form-control" name="received_by_name" value="<?php echo isset($form_values['received_by_name']) ? htmlspecialchars($form_values['received_by_name']) : ''; ?>" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Designation</label>
-                      <input type="text" style="color: #000000;" class="form-control" name="received_by_designation" required>
+                      <input type="text" style="color: #000000;" class="form-control" name="received_by_designation" value="<?php echo isset($form_values['received_by_designation']) ? htmlspecialchars($form_values['received_by_designation']) : ''; ?>" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Date</label>
-                      <input type="date" style="color: #000000;" class="form-control" name="received_by_date" required>
+                      <input type="date" style="color: #000000;" class="form-control" name="received_by_date" value="<?php echo isset($form_values['received_by_date']) ? htmlspecialchars($form_values['received_by_date']) : ''; ?>" required>
                     </div>
                   </div>
-
+                  <div class="form-section" style="margin-top: 20px; border: 1px solid #dee2e6; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+                    <h4 class="mb-3">Item Details</h4>
+                    <table class="items-table">
+                      <thead>
+                        <tr>
+                          <th>Stock No.</th>
+                          <th>Item Description</th>
+                          <th>Unit</th>
+                          <th>Requested Quantity</th>
+                          <th>Stock Available?</th>
+                          <th>Issue Quantity</th>
+                          <th>Remarks</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody id="itemsTableBody">
+                        <?php
+                        $item_count = isset($form_values['stock_no']) ? count($form_values['stock_no']) : 1;
+                        for ($i = 0; $i < $item_count; $i++):
+                        ?>
+                        <tr>
+                          <td><input type="text" name="stock_no[]" class="underline-input" value="<?php echo isset($form_values['stock_no'][$i]) ? htmlspecialchars($form_values['stock_no'][$i]) : ''; ?>"></td>
+                          <td><input type="text" name="item_description[]" class="underline-input" value="<?php echo isset($form_values['item_description'][$i]) ? htmlspecialchars($form_values['item_description'][$i]) : ''; ?>"></td>
+                          <td>
+                            <select name="unit[]" class="underline-input">
+                              <option value="">Select Unit</option>
+                              <option value="box" <?php echo (isset($form_values['unit'][$i]) && $form_values['unit'][$i] == 'box') ? 'selected' : ''; ?>>box</option>
+                              <option value="pieces" <?php echo (isset($form_values['unit'][$i]) && $form_values['unit'][$i] == 'pieces') ? 'selected' : ''; ?>>pieces</option>
+                            </select>
+                          </td>
+                       
+                          <td><input type="number" name="requested_qty[]" class="underline-input" min="0" step="0.01" value="<?php echo isset($form_values['requested_qty'][$i]) ? htmlspecialchars($form_values['requested_qty'][$i]) : ''; ?>"></td>
+                          <td>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="stock_available[<?php echo $i; ?>]" value="yes" <?php echo (isset($form_values['stock_available'][$i]) && $form_values['stock_available'][$i] == 'yes') ? 'checked' : ''; ?>> Yes</label>
+                                    <label><input type="radio" name="stock_available[<?php echo $i; ?>]" value="no" <?php echo (isset($form_values['stock_available'][$i]) && $form_values['stock_available'][$i] == 'no') ? 'checked' : ''; ?>> No</label>
+                                </div>
+                            </td>
+                            <td><input type="number" name="issue_qty[]" class="underline-input" min="0" step="0.01" value="<?php echo isset($form_values['issue_qty'][$i]) ? htmlspecialchars($form_values['issue_qty'][$i]) : ''; ?>"></td>
+                          <td>
+                            <select name="remarks[]" class="underline-input">
+                              <option value="">Select Remarks</option>
+                              <option value="Consumable" <?php echo (isset($form_values['remarks'][$i]) && $form_values['remarks'][$i] == 'Consumable') ? 'selected' : ''; ?>>Consumable</option>
+                              <option value="Non-Consumable" <?php echo (isset($form_values['remarks'][$i]) && $form_values['remarks'][$i] == 'Non-Consumable') ? 'selected' : ''; ?>>Non-Consumable</option>
+                            </select>
+                          </td>
+                          <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
+                        </tr>
+                        <?php endfor; ?>
+                      </tbody>
+                    </table>
+                    <button type="button" class="btn btn-add-row" onclick="addItemRow()" style="margin-top: 15px; float: right;"><i class="fas fa-plus mr-2"></i> Add Item</button>
+                    <div style="clear: both;"></div>
+                  </div>
+                  <div class="row mb-3">
+                    <div class="col-md-8">
+                      <label class="form-label">Purpose</label>
+                      <input type="text" style="color: #000000;" class="form-control" name="purpose" value="<?php echo isset($form_values['purpose']) ? htmlspecialchars($form_values['purpose']) : ''; ?>" required>
+                    </div>
+                  </div>
                   <div class="text-end mt-4">
                     <button type="submit" class="btn btn-primary">Submit</button>
                   </div>
@@ -372,6 +554,72 @@ require_once('partials/_head.php');
   <?php
   require_once('partials/_scripts.php');
   ?>
+  <script>
+    function addItemRow() {
+      const tbody = document.getElementById('itemsTableBody');
+      const rowCount = tbody.rows.length;
+      const newRow = tbody.insertRow();
+      
+      newRow.innerHTML = `
+        <td><input type="text" name="stock_no[]" class="underline-input"></td>
+        <td><input type="text" name="item_description[]" class="underline-input"></td>
+        <td>
+          <select name="unit[]" class="underline-input">
+            <option value="">Select Unit</option>
+            <option value="box">box</option>
+            <option value="pieces">pieces</option>
+          </select>
+        </td>
+        <td><input type="number" name="requested_qty[]" class="underline-input" min="0" step="0.01"></td>
+        <td>
+          <div class="radio-group">
+            <label><input type="radio" name="stock_available[${rowCount}]" value="1"> Yes</label>
+            <label><input type="radio" name="stock_available[${rowCount}]" value="0"> No</label>
+          </div>
+        </td>
+        <td><input type="number" name="issue_qty[]" class="underline-input" min="0" step="0.01"></td>
+        <td>
+          <select name="remarks[]" class="underline-input">
+            <option value="">Select Remarks</option>
+            <option value="Consumable">Consumable</option>
+            <option value="Non-Consumable">Non-Consumable</option>
+          </select>
+        </td>
+        <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
+      `;
+    }
+
+    function removeRow(button) {
+      const row = button.closest('tr');
+      const tbody = document.getElementById('itemsTableBody');
+      
+      if (tbody.rows.length > 1) {
+        row.remove();
+      } else {
+        alert('Cannot remove the last row');
+      }
+    }
+
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+      const requiredFields = document.querySelectorAll('[required]');
+      let isValid = true;
+
+      requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+          field.classList.add('is-invalid');
+          isValid = false;
+        } else {
+          field.classList.remove('is-invalid');
+        }
+      });
+
+      if (!isValid) {
+        e.preventDefault();
+        alert('Please fill in all required fields');
+      }
+    });
+  </script>
 </body>
 
 </html>
