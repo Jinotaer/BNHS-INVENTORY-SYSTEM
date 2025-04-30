@@ -520,6 +520,7 @@ require_once('partials/_head.php');
         <td><input type="number" name="quantity[]" class="underline-input" min="1"></td>
         <td><input type="number" name="unit_price[]" class="underline-input" min="0" step="0.01"></td>
         <td><input type="number" name="total_price[]" class="underline-input" min="0" step="0.01" readonly></td>
+        <td><input type="text" name="estimated_life[]" class="underline-input"></td>
         <td><input type="text" name="remarks[]" class="underline-input"></td>
         <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
       `;
