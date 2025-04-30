@@ -128,6 +128,7 @@ require_once('partials/_head.php');
                   <tr>
                     <th scope="col">Entity Name</th>
                     <th scope="col">Fund Cluster</th>
+                    <th scope="col">Article</th>
                     <th scope="col">PAR No.</th>
                     <th scope="col">Quantity</th>
                     <th scope="col">Unit</th>
@@ -142,12 +143,13 @@ require_once('partials/_head.php');
                     <th scope="col">Property Custodian Name</th>
                     <th scope="col">Position/Office</th>
                     <th scope="col">Date</th>
+                    <th scope="col">Remarks</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   <?php
-                  $ret = "SELECT p.*, pi.quantity, pi.property_number, pi.par_item_id, e.entity_name, e.fund_cluster, i.item_id, i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount 
+                  $ret = "SELECT p.*, pi.quantity, pi.property_number, pi.article, pi.par_item_id, pi.remarks, e.entity_name, e.fund_cluster, i.item_id, i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount 
                           FROM property_acknowledgment_receipts p 
                           JOIN par_items pi ON p.par_id = pi.par_id 
                           JOIN entities e ON p.entity_id = e.entity_id
@@ -161,6 +163,7 @@ require_once('partials/_head.php');
                     <tr>
                       <td><?php echo $par->entity_name; ?></td>
                       <td><?php echo $par->fund_cluster; ?></td>
+                      <td><?php echo $par->article; ?></td>
                       <td><?php echo $par->par_no; ?></td>
                       <td><?php echo $par->quantity; ?></td>
                       <td><?php echo $par->unit; ?></td>
@@ -175,6 +178,7 @@ require_once('partials/_head.php');
                       <td><?php echo $par->custodian_name; ?></td>
                       <td><?php echo $par->custodian_position; ?></td>
                       <td><?php echo $par->custodian_date; ?></td>
+                      <td><?php echo $par->remarks; ?></td>
                       <td>
                         <a href="display_par.php?delete_item=<?php echo $par->par_item_id; ?>" 
                          >

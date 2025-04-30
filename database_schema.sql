@@ -26,7 +26,6 @@ CREATE TABLE items (
     item_description TEXT NOT NULL,
     unit VARCHAR(20) NOT NULL,
     unit_cost DECIMAL(10,2) NOT NULL,
-    estimated_useful_life INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -95,6 +94,8 @@ CREATE TABLE par_items (
     item_id INT NOT NULL,
     quantity INT NOT NULL,
     property_number VARCHAR(50) UNIQUE,
+    article VARCHAR(100),
+    remarks TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (par_id) REFERENCES property_acknowledgment_receipts(par_id),
     FOREIGN KEY (item_id) REFERENCES items(item_id)
@@ -163,6 +164,8 @@ CREATE TABLE ics_items (
     item_id INT NOT NULL,
     quantity INT NOT NULL,
     inventory_item_no VARCHAR(50) UNIQUE,
+    article VARCHAR(100),
+    remarks TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (ics_id) REFERENCES inventory_custodian_slips(ics_id),
     FOREIGN KEY (item_id) REFERENCES items(item_id)

@@ -41,6 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && isset($_POST['update'])) {
   $custodian_name = sanitize($_POST['custodian_name']);
   $custodian_position = sanitize($_POST['custodian_position']);
   $custodian_date = sanitize($_POST['custodian_date']);
+  
+  // Get article and remarks values
+  $article = isset($_POST['article']) && is_array($_POST['article']) ? sanitize($_POST['article'][0]) : '';
+  $remarks = isset($_POST['remarks']) ? sanitize($_POST['remarks']) : '';
 
   // Check if we're updating a specific item
   if (isset($_POST['item_id'])) {
@@ -68,18 +72,18 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && isset($_POST['update'])) {
       // Update par_items - If par_item_id is provided, use it in the WHERE clause
       if ($par_item_id) {
         $stmt = $mysqli->prepare("UPDATE par_items SET 
-          quantity = ?, property_number = ?
+          quantity = ?, property_number = ?, article = ?, remarks = ?
           WHERE par_item_id = ?");
 
-        $stmt->bind_param("isi", $quantity, $property_number, $par_item_id);
+        $stmt->bind_param("isssi", $quantity, $property_number, $article, $remarks, $par_item_id);
         
         error_log("Updating par_item with par_item_id=$par_item_id");
       } else {
         $stmt = $mysqli->prepare("UPDATE par_items SET 
-          quantity = ?, property_number = ?
+          quantity = ?, property_number = ?, article = ?, remarks = ?
           WHERE par_id = ? AND item_id = ?");
 
-        $stmt->bind_param("isii", $quantity, $property_number, $par_id, $item_id);
+        $stmt->bind_param("isssii", $quantity, $property_number, $article, $remarks, $par_id, $item_id);
         
         error_log("Updating par_item with par_id=$par_id, item_id=$item_id (no par_item_id)");
       }
@@ -164,9 +168,9 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && isset($_POST['update'])) {
         
         // Update par_item
         $update_par_item = $mysqli->prepare("UPDATE par_items SET 
-          quantity = ?, property_number = ?
+          quantity = ?, property_number = ?, article = ?, remarks = ?
           WHERE par_id = ? AND item_id = ?");
-        $update_par_item->bind_param("isii", $quantity, $property_number, $par_id, $item_id);
+        $update_par_item->bind_param("isssii", $quantity, $property_number, $article, $remarks, $par_id, $item_id);
         $update_par_item->execute();
       }
       
@@ -206,7 +210,7 @@ require_once('partials/_head.php');
       // Add debug logging
       error_log("Loading item update form: par_id=$par_id, item_id=$item_id, par_item_id=$par_item_id");
 
-      $ret = "SELECT p.*, e.entity_name, e.fund_cluster, pi.quantity, pi.property_number, pi.par_item_id, i.item_id, i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount
+      $ret = "SELECT p.*, e.entity_name, e.fund_cluster, pi.quantity, pi.property_number, pi.article, pi.remarks, pi.par_item_id, i.item_id, i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount
             FROM property_acknowledgment_receipts p
             JOIN entities e ON p.entity_id = e.entity_id
             JOIN par_items pi ON p.par_id = pi.par_id
@@ -216,7 +220,7 @@ require_once('partials/_head.php');
       $stmt->bind_param("ii", $par_id, $item_id);
     } else {
       $update = $_GET['update'];
-      $ret = "SELECT p.*, e.entity_name, e.fund_cluster, pi.quantity, pi.property_number, pi.par_item_id, i.item_id, i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount
+      $ret = "SELECT p.*, e.entity_name, e.fund_cluster, pi.quantity, pi.property_number, pi.article, pi.remarks, pi.par_item_id, i.item_id, i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount
             FROM property_acknowledgment_receipts p
             JOIN entities e ON p.entity_id = e.entity_id
             JOIN par_items pi ON p.par_id = pi.par_id
@@ -346,7 +350,22 @@ require_once('partials/_head.php');
                            value="<?php echo $par->total_amount; ?>" name="total_amount" readonly>
                       </div>
                     </div>
-
+                    <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Article</label>
+                      <select name="article[]" class="form-control" style="color: #000000;">
+                              <option value="">Select Article</option>
+                              <option value="BUILDING" <?php echo (isset($par->article) && $par->article == 'BUILDING') ? 'selected' : ''; ?>>BUILDING</option>
+                              <option value="LAND" <?php echo (isset($par->article) && $par->article == 'LAND') ? 'selected' : ''; ?>>LAND</option>
+                              <option value="IT EQUIPMENT" <?php echo (isset($par->article) && $par->article == 'IT EQUIPMENT') ? 'selected' : ''; ?>>IT EQUIPMENT</option>
+                              <option value="SCHOOL BUILDING" <?php echo (isset($par->article) && $par->article == 'SCHOOL BUILDING') ? 'selected' : ''; ?>>SCHOOL BUILDING</option>
+                            </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Remarks</label>
+                      <input type="text" class="form-control" name="remarks" style="color: #000000;" value="<?php echo isset($par->remarks) ? htmlspecialchars($par->remarks) : ''; ?>">
+                    </div>
+                  </div>
                     <!-- Hidden inputs to store the IDs -->
                     <?php if (isset($_GET['update_item']) && isset($_GET['item_id'])): ?>
                       <input type="hidden" name="par_id" value="<?php echo $_GET['update_item']; ?>">

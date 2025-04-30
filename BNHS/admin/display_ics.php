@@ -126,10 +126,11 @@ require_once('partials/_head.php');
                   <tr>
                     <th scope="col">Entity Name</th>
                     <th scope="col">Fund Cluster</th>
-                    <th scope="col">ICS No.</th>
+                    <th scope="col">Article</th>
+                    <th scope="col">ICS No.</th>  
                     <th scope="col">Quantity</th>
                     <th scope="col">Unit</th>
-                    <th scope="col">Unit Cost</th>
+                    <th scope="col">Unit Cost</th>  
                     <th scope="col">Total Amount</th>
                     <th scope="col">Item Description</th>
                     <th scope="col">Inventory Item No.</th>
@@ -140,16 +141,18 @@ require_once('partials/_head.php');
                     <th scope="col">Property Custodian</th>
                     <th scope="col">Position/Office</th>
                     <th scope="col">Date Received(by Custodian)</th>
+                    <th scope="col">Remarks</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   <?php
-                  $ret = "SELECT ics.ics_id, ii.ics_item_id, i.item_id, e.entity_name, e.fund_cluster, ics.ics_no,
+                  $ret = "SELECT ics.ics_id, ii.ics_item_id, i.item_id, e.entity_name, e.fund_cluster, ii.article, ics.ics_no,
                            ii.quantity, i.unit, i.unit_cost, (ii.quantity * i.unit_cost) as total_amount,
                            i.item_description, ii.inventory_item_no, i.estimated_useful_life,
                            ics.end_user_name, ics.end_user_position, ics.end_user_date,
-                           ics.custodian_name, ics.custodian_position, ics.custodian_date
+                           ics.custodian_name, ics.custodian_position, ics.custodian_date,
+                          ii.remarks
                          FROM inventory_custodian_slips ics
                          JOIN entities e ON ics.entity_id = e.entity_id
                          JOIN ics_items ii ON ics.ics_id = ii.ics_id
@@ -168,6 +171,7 @@ require_once('partials/_head.php');
                     <tr>
                       <td><?php echo htmlspecialchars($ics->entity_name); ?></td>
                       <td><?php echo htmlspecialchars($ics->fund_cluster); ?></td>
+                      <td><?php echo htmlspecialchars($ics->article); ?></td>
                       <td><?php echo htmlspecialchars($ics->ics_no); ?></td>
                       <td><?php echo number_format($ics->quantity); ?></td>
                       <td><?php echo htmlspecialchars($ics->unit); ?></td>
@@ -182,6 +186,7 @@ require_once('partials/_head.php');
                       <td><?php echo htmlspecialchars($ics->custodian_name); ?></td>
                       <td><?php echo htmlspecialchars($ics->custodian_position); ?></td>
                       <td><?php echo date('M d, Y', strtotime($ics->custodian_date)); ?></td>
+                      <td><?php echo htmlspecialchars($ics->remarks); ?></td>
                       <td>
                         <!-- <a href="display_ics.php?delete_item=<?php echo $ics->ics_item_id; ?>">
                           <button class="btn btn-sm btn-danger">

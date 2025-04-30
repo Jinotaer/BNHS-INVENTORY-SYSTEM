@@ -5,11 +5,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Bukidnon National High School Inventory System</title>
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="assets/img/brand/bnhs.png">
     <link rel="icon" type="image/png" sizes="16x16" href="assets/img/brand/bnhs.png">
-  
+
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet">
@@ -20,20 +20,21 @@
     <!-- Argon CSS -->
     <link type="text/css" href="assets/css/argon.css?v=1.0.0" rel="stylesheet">
     <script src="assets/js/swal.js"></script>
-
+    <!-- Custom CSS -->
+    <link type="text/css" href="assets/css/custom.css" rel="stylesheet">
     <!-- bootstrap -->
     <!-- Bootstrap JS Bundle with Popper (for Bootstrap 5) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <link rel="stylesheet" href="https://cdn.datatables.net/2.2.2/css/dataTables.dataTables.min.css">
-    
+
     <!--Load Swal-->
     <?php if (isset($success)) { ?>
         <!--This code for injecting success alert-->
         <script>
-            setTimeout(function () {
-                swal("Success", "<?php echo $success; ?>", "success");
-            },
+            setTimeout(function() {
+                    swal("Success", "<?php echo $success; ?>", "success");
+                },
                 100);
         </script>
 
@@ -41,9 +42,9 @@
     <?php if (isset($err)) { ?>
         <!--This code for injecting error alert-->
         <script>
-            setTimeout(function () {
-                swal("Failed", "<?php echo $err; ?>", "error");
-            },
+            setTimeout(function() {
+                    swal("Failed", "<?php echo $err; ?>", "error");
+                },
                 100);
         </script>
 
@@ -51,19 +52,19 @@
     <?php if (isset($info)) { ?>
         <!--This code for injecting info alert-->
         <script>
-            setTimeout(function () {
-                swal("Success", "<?php echo $info; ?>", "info");
-            },
+            setTimeout(function() {
+                    swal("Success", "<?php echo $info; ?>", "info");
+                },
                 100);
         </script>
 
     <?php } ?>
     <!-- logout alert -->
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const logoutBtn = document.getElementById('logoutBtn');
             if (logoutBtn) {
-                logoutBtn.addEventListener('click', function (e) {
+                logoutBtn.addEventListener('click', function(e) {
                     e.preventDefault(); // Prevent the default link behavior
                     swal({
                         title: "Are you sure?",
@@ -88,7 +89,7 @@
                 type: "POST",
                 url: "customer_ajax.php",
                 data: 'custName=' + val,
-                success: function (data) {
+                success: function(data) {
                     //alert(data);
                     $('#customerID').val(data);
                 }

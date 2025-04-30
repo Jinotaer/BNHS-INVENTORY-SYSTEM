@@ -17,11 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
   $fund_cluster = sanitize($_POST['fund_cluster']);
   $par_no = sanitize($_POST['par_no']);
   $property_number = sanitize($_POST['property_number']);
+  $article = sanitize($_POST['article']);
   $item_description = sanitize($_POST['item_description']);
   $unit = sanitize($_POST['unit']);
   $quantity = sanitize($_POST['quantity']);
   $unit_cost = sanitize($_POST['unit_cost']);
   $total_amount = isset($_POST['total_amount']) ? sanitize($_POST['total_amount']) : null;
+  $remarks = sanitize($_POST['remarks']);
   $date_acquired = sanitize($_POST['date_acquired']);
   $end_user_name = sanitize($_POST['end_user_name']);
   $receiver_position = sanitize($_POST['receiver_position']);
@@ -112,8 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
       // Insert into par_items
       $par_item_stmt = $mysqli->prepare("INSERT INTO par_items (
-        par_id, item_id, quantity, property_number
-      ) VALUES (?, ?, ?, ?)");
+        par_id, item_id, quantity, property_number, article, remarks
+      ) VALUES (?, ?, ?, ?, ?, ?)");
 
       if ($par_item_stmt === false) {
         die("MySQL prepare failed: " . $mysqli->error);
@@ -121,11 +123,13 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
       $quantity_value = (int) $quantity[$i];
       $par_item_stmt->bind_param(
-        "iiis",
+        "iiisss",
         $par_id,
         $item_id,
         $quantity_value,
-        $property_number[$i]
+        $property_number[$i],
+        $article[$i],
+        $remarks[$i]
       );
 
       if (!$par_item_stmt->execute()) {
@@ -350,17 +354,28 @@ require_once('partials/_head.php');
                       <thead>
                         <tr>
                           <th>Stock / Property No.</th>
+                          <th>Article</th>
                           <th>Item Description</th>
                           <th>Unit</th>
                           <th>Quantity</th>
                           <th>Unit Cost</th>
                           <th>Total Amount</th>
+                          <th>Remarks</th>
                           <th>Action</th>
                         </tr>
                       </thead>
                       <tbody id="itemsTableBody">
                         <tr>
                           <td><input type="text" name="property_number[]" class="underline-input"></td>
+                          <td>
+                            <select name="article[]" class="underline-input">
+                              <option value="">Select Article</option>
+                              <option value="BUILDING">BUILDING</option>
+                              <option value="LAND">LAND</option>
+                              <option value="IT EQUIPMENT">IT EQUIPMENT</option>
+                              <option value="SCHOOL BUILDING">SCHOOL BUILDING</option>
+                            </select>
+                          </td>
                           <td><input type="text" name="item_description[]" class="underline-input<?php if (isset($errors['item_description'])) echo ' is-invalid'; ?>"></td>
                           <td>
                             <select name="unit[]" class="underline-input">
@@ -372,6 +387,7 @@ require_once('partials/_head.php');
                           <td><input type="number" name="quantity[]" class="underline-input" min="1" oninput="calculateRowTotal(this.parentNode.nextElementSibling.querySelector('input'))"></td>
                           <td><input type="number" name="unit_cost[]" class="underline-input" min="0" step="0.01" oninput="calculateRowTotal(this)"></td>
                           <td><input type="number" name="total_amount[]" class="underline-input" min="0" step="0.01" readonly></td>
+                          <td><input type="text" name="remarks[]" class="underline-input"></td>
                           <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
                         </tr>
                         <?php if (isset($errors['item_description'])): ?><tr>
@@ -432,6 +448,15 @@ require_once('partials/_head.php');
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
       <td><input type="text" name="property_number[]" class="underline-input"></td>
+      <td>
+        <select name="article[]" class="underline-input">
+          <option value="">Select Article</option>
+          <option value="BUILDING">BUILDING</option>
+          <option value="LAND">LAND</option>
+          <option value="IT EQUIPMENT">IT EQUIPMENT</option>
+          <option value="School Building">School Building</option>
+        </select>
+      </td>
       <td><input type="text" name="item_description[]" class="underline-input"></td>
       <td>
         <select name="unit[]" class="underline-input">
@@ -443,6 +468,7 @@ require_once('partials/_head.php');
       <td><input type="number" name="quantity[]" class="underline-input" min="1"></td>
       <td><input type="number" name="unit_cost[]" class="underline-input" min="0" step="0.01"></td>
       <td><input type="number" name="total_amount[]" class="underline-input" min="0" step="0.01" readonly></td>
+      <td><input type="text" name="remarks[]" class="underline-input"></td>
       <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
     `;
     tbody.appendChild(newRow);

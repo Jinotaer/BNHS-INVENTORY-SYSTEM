@@ -23,6 +23,8 @@ $quantities = [''];
 $unit_prices = [''];
 $total_prices = [''];
 $estimated_life = [''];
+$articles = [''];
+$remarks = [''];
 
 if ($_SERVER['REQUEST_METHOD'] == "POST") {
   // Sanitize and collect form data
@@ -50,6 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
   $unit_prices = isset($_POST['unit_price']) ? $_POST['unit_price'] : [''];
   $total_prices = isset($_POST['total_price']) ? $_POST['total_price'] : [''];
   $estimated_life = isset($_POST['estimated_life']) ? $_POST['estimated_life'] : [''];
+  $articles = isset($_POST['article']) ? $_POST['article'] : [''];
+  $remarks = isset($_POST['remarks']) ? $_POST['remarks'] : [''];
 
   // First, get or create entity
   $stmt = $mysqli->prepare("SELECT entity_id FROM entities WHERE entity_name = ? AND fund_cluster = ?");
@@ -105,6 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
       $quantity = (int) sanitize($_POST['quantity'][$i]);
       $unit_cost = (float) sanitize($_POST['unit_price'][$i]);
       $estimated_life = sanitize($_POST['estimated_life'][$i]);
+      $article = sanitize($_POST['article'][$i]);
+      $remarks = isset($_POST['remarks'][$i]) ? sanitize($_POST['remarks'][$i]) : '';
 
       // Get or create item
       $stmt_item = $mysqli->prepare("SELECT item_id FROM items WHERE item_description = ? AND unit = ? AND unit_cost = ?");
@@ -123,14 +129,14 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
       // Insert into ics_items table
       $stmt_ics_items = $mysqli->prepare("INSERT INTO ics_items (
-        ics_id, item_id, quantity, inventory_item_no
-      ) VALUES (?, ?, ?, ?)");
+        ics_id, item_id, quantity, inventory_item_no, article, remarks
+      ) VALUES (?, ?, ?, ?, ?, ?)");
 
       if ($stmt_ics_items === false) {
         die("MySQL prepare failed: " . $mysqli->error);
       }
 
-      $stmt_ics_items->bind_param("iiis", $ics_id, $item_id, $quantity, $inventory_item_no);
+      $stmt_ics_items->bind_param("iiisss", $ics_id, $item_id, $quantity, $inventory_item_no, $article, $remarks);
 
       if (!$stmt_ics_items->execute()) {
         $err = "Error creating item details: " . $stmt_ics_items->error;
@@ -369,19 +375,20 @@ require_once('partials/_head.php');
                       <input style="color: #000000;" type="date" class="form-control" name="date_received_custodian" required value="<?php echo isset($date_received_custodian) ? htmlspecialchars($date_received_custodian) : ''; ?>">
                     </div>
                   </div>
-
                   <div class="form-section" style="margin-top: 20px; border: 1px solid #dee2e6; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
                     <h4 class="mb-3">Item Details</h4>
                     <table class="items-table">
                       <thead>
                         <tr>
                           <th>Inventory Item No.</th>
+                          <th>Article</th>
                           <th>Item Description</th>
                           <th>Unit</th>
                           <th>Quantity</th>
-                          <th>Unit Price</th>
+                          <th>Unit Value</th>
                           <th>Total Price</th>
-                          <th>Estimated Life</th>
+                          <th>Estimated Useful Life</th>
+                          <th>Remarks</th>
                           <th>Action</th>
                         </tr>
                       </thead>
@@ -392,6 +399,16 @@ require_once('partials/_head.php');
                         ?>
                           <tr>
                             <td><input type="text" name="inventory_item_no[]" class="underline-input" value="<?php echo isset($inventory_item_nos[$i]) ? htmlspecialchars($inventory_item_nos[$i]) : ''; ?>"></td>
+                            <td>
+                              <select name="article[]" class="underline-input">
+                                <option value="">Select Article</option>
+                                <option value="SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT" <?php if (isset($articles[$i]) && $articles[$i] == 'SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT') echo 'selected'; ?>>SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT</option>
+                                <option value="SEMI-EXPENDABLE FURNITURE AND FIXTURES" <?php if (isset($articles[$i]) && $articles[$i] == 'SEMI-EXPENDABLE FURNITURE AND FIXTURES') echo 'selected'; ?>>SEMI-EXPENDABLE FURNITURE AND FIXTURES</option>
+                                <option value="SEMI- EXPENDABLE IT EQUIPMENT" <?php if (isset($articles[$i]) && $articles[$i] == 'SEMI- EXPENDABLE IT EQUIPMENT') echo 'selected'; ?>>SEMI- EXPENDABLE IT EQUIPMENT</option>
+                                <option value="BOOK,MANUAL,LM" <?php if (isset($articles[$i]) && $articles[$i] == 'BOOK,MANUAL,LM') echo 'selected'; ?>>BOOK,MANUAL,LM</option>
+                                <option value="SEMI- EXPENDABLE OFFICE PROPERTY" <?php if (isset($articles[$i]) && $articles[$i] == 'SEMI- EXPENDABLE OFFICE PROPERTY') echo 'selected'; ?>>SEMI- EXPENDABLE OFFICE PROPERTY</option>
+                              </select>
+                            </td>
                             <td><input type="text" name="item_description[]" class="underline-input<?php if (isset($errors['item_description'])) echo ' is-invalid'; ?>" value="<?php echo isset($item_descriptions[$i]) ? htmlspecialchars($item_descriptions[$i]) : ''; ?>"></td>
                             <td>
                               <select name="unit[]" class="underline-input">
@@ -404,6 +421,7 @@ require_once('partials/_head.php');
                             <td><input type="number" name="unit_price[]" class="underline-input" min="0" step="0.01" value="<?php echo isset($unit_prices[$i]) ? htmlspecialchars($unit_prices[$i]) : ''; ?>"></td>
                             <td><input type="number" name="total_price[]" class="underline-input" min="0" step="0.01" readonly value="<?php echo isset($total_prices[$i]) ? htmlspecialchars($total_prices[$i]) : ''; ?>"></td>
                             <td><input type="text" name="estimated_life[]" class="underline-input" value="<?php echo isset($estimated_life[$i]) ? htmlspecialchars($estimated_life[$i]) : ''; ?>"></td>
+                            <td><input type="text" name="remarks[]" class="underline-input" value="<?php echo isset($remarks[$i]) ? htmlspecialchars($remarks[$i]) : ''; ?>"></td>
                             <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
                           </tr>
                         <?php endfor; ?>
@@ -481,6 +499,16 @@ require_once('partials/_head.php');
       const newRow = document.createElement('tr');
       newRow.innerHTML = `
         <td><input type="text" name="inventory_item_no[]" class="underline-input"></td>
+        <td>
+          <select name="article[]" class="underline-input">
+            <option value="">Select Article</option>
+            <option value="SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT">SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT</option>
+            <option value="SEMI-EXPENDABLE FURNITURE AND FIXTURES">SEMI-EXPENDABLE FURNITURE AND FIXTURES</option>
+            <option value="SEMI- EXPENDABLE IT EQUIPMENT">SEMI- EXPENDABLE IT EQUIPMENT</option>
+            <option value="BOOK,MANUAL,LM">BOOK,MANUAL,LM</option>
+            <option value="SEMI- EXPENDABLE OFFICE PROPERTY">SEMI- EXPENDABLE OFFICE PROPERTY</option>
+          </select>
+        </td>
         <td><input type="text" name="item_description[]" class="underline-input"></td>
         <td>
           <select name="unit[]" class="underline-input">
@@ -492,7 +520,7 @@ require_once('partials/_head.php');
         <td><input type="number" name="quantity[]" class="underline-input" min="1"></td>
         <td><input type="number" name="unit_price[]" class="underline-input" min="0" step="0.01"></td>
         <td><input type="number" name="total_price[]" class="underline-input" min="0" step="0.01" readonly></td>
-        <td><input type="text" name="estimated_life[]" class="underline-input"></td>
+        <td><input type="text" name="remarks[]" class="underline-input"></td>
         <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
       `;
       tbody.appendChild(newRow);

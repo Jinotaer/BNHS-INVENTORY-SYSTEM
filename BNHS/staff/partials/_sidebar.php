@@ -96,7 +96,7 @@ while ($staff = $res->fetch_object()) {
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link dropdown-toggle" href="#reportsSubmenu" data-toggle="collapse" aria-expanded="false">
+            <a class="nav-link" href="#reportsSubmenu" data-toggle="collapse" aria-expanded="false">
               <i><span class="material-icons-sharp text-primary">description</span></i> Reports
             </a>
             <ul class="collapse list-unstyled ml-3" id="reportsSubmenu">
@@ -123,7 +123,7 @@ while ($staff = $res->fetch_object()) {
             </ul>
           </li>
           <li class="nav-item">
-            <a class="nav-link dropdown-toggle" href="#AuditsSubmenu" data-toggle="collapse" aria-expanded="false">
+            <a class="nav-link" href="#AuditsSubmenu" data-toggle="collapse" aria-expanded="false">
               <i><span class="material-icons-sharp text-primary">analytics</span></i> Audits
             </a>
             <ul class="collapse list-unstyled ml-3" id="AuditsSubmenu" >

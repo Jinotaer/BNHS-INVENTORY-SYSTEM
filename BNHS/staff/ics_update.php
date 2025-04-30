@@ -27,6 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
   $custodian_name = sanitize($_POST['custodian_name']);
   $custodian_position = sanitize($_POST['custodian_position']);
   $custodian_date = sanitize($_POST['custodian_date']);
+  $article = sanitize($_POST['article']);
+  $remarks = isset($_POST['remarks']) ? sanitize($_POST['remarks']) : '';
 
   // Check if we're updating a specific item
   if (isset($_GET['update_item']) && isset($_GET['item_id'])) {
@@ -50,10 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
       // Update ics_items
       $stmt = $mysqli->prepare("UPDATE ics_items SET 
-        quantity = ?, inventory_item_no = ?
+        quantity = ?, inventory_item_no = ?, article = ?, remarks = ?
         WHERE ics_id = ? AND item_id = ?");
 
-      $stmt->bind_param("isii", $quantity, $inventory_item_no, $ics_id, $item_id);
+      $stmt->bind_param("isssii", $quantity, $inventory_item_no, $article, $remarks, $ics_id, $item_id);
 
       if (!$stmt->execute()) {
         throw new Exception("Error updating ICS items: " . $stmt->error);
@@ -142,10 +144,10 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
         // Update ics_items
         $stmt = $mysqli->prepare("UPDATE ics_items SET 
-          quantity = ?, inventory_item_no = ?
+          quantity = ?, inventory_item_no = ?, article = ?, remarks = ?
           WHERE ics_id = ? AND item_id = ?");
 
-        $stmt->bind_param("isii", $quantity, $inventory_item_no, $ics_id, $item_id);
+        $stmt->bind_param("isssii", $quantity, $inventory_item_no, $article, $remarks, $ics_id, $item_id);
 
         if (!$stmt->execute()) {
           throw new Exception("Error updating ICS items: " . $stmt->error);
@@ -192,7 +194,9 @@ require_once('partials/_head.php');
         i.unit_cost,
         i.estimated_useful_life,
         ii.quantity,
-        ii.inventory_item_no
+        ii.inventory_item_no,
+        ii.article,
+        ii.remarks
       FROM inventory_custodian_slips ics
       JOIN entities e ON ics.entity_id = e.entity_id
       JOIN ics_items ii ON ics.ics_id = ii.ics_id
@@ -212,7 +216,9 @@ require_once('partials/_head.php');
         i.unit_cost,
         i.estimated_useful_life,
         ii.quantity,
-        ii.inventory_item_no
+        ii.inventory_item_no,
+        ii.article,
+        ii.remarks
       FROM inventory_custodian_slips ics
       JOIN entities e ON ics.entity_id = e.entity_id
       JOIN ics_items ii ON ics.ics_id = ii.ics_id
@@ -329,6 +335,24 @@ require_once('partials/_head.php');
                     <div class="col-md-4">
                       <label class="form-label">Estimated Useful Life</label>
                       <input style="color: #000000;" type="text" class="form-control" name="estimated_useful_life" value="<?php echo htmlspecialchars($ics->estimated_useful_life); ?>" required>
+                    </div>
+                  </div>
+                  
+                  <div class="row mb-3">
+                    <div class="col-md-6">  
+                      <label class="form-label">Article</label>
+                      <select class="form-control" name="article" style="color: #000000;">
+                        <option value="">Select Article</option>
+                        <option value="SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT" <?php if (isset($ics->article) && $ics->article == 'SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT') echo 'selected'; ?>>SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT</option>
+                        <option value="SEMI-EXPENDABLE FURNITURE AND FIXTURES" <?php if (isset($ics->article) && $ics->article == 'SEMI-EXPENDABLE FURNITURE AND FIXTURES') echo 'selected'; ?>>SEMI-EXPENDABLE FURNITURE AND FIXTURES</option>
+                        <option value="SEMI- EXPENDABLE IT EQUIPMENT" <?php if (isset($ics->article) && $ics->article == 'SEMI- EXPENDABLE IT EQUIPMENT') echo 'selected'; ?>>SEMI- EXPENDABLE IT EQUIPMENT</option>
+                        <option value="BOOK,MANUAL,LM" <?php if (isset($ics->article) && $ics->article == 'BOOK,MANUAL,LM') echo 'selected'; ?>>BOOK,MANUAL,LM</option>
+                        <option value="SEMI- EXPENDABLE OFFICE PROPERTY" <?php if (isset($ics->article) && $ics->article == 'SEMI- EXPENDABLE OFFICE PROPERTY') echo 'selected'; ?>>SEMI- EXPENDABLE OFFICE PROPERTY</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Remarks</label>
+                      <input type="text" class="form-control" name="remarks" style="color: #000000;" value="<?php echo isset($ics->remarks) ? htmlspecialchars($ics->remarks) : ''; ?>">
                     </div>
                   </div>
                   

@@ -120,7 +120,8 @@ ob_start(); // Start output buffering
                     ii.quantity, i.unit, i.unit_cost, (ii.quantity * i.unit_cost) as total_amount,
                     i.item_description, ii.inventory_item_no, i.estimated_useful_life,
                     ics.end_user_name, ics.end_user_position, ics.end_user_date,
-                    ics.custodian_name, ics.custodian_position, ics.custodian_date
+                    ics.custodian_name, ics.custodian_position, ics.custodian_date,
+                    ii.article, ii.remarks
                   FROM inventory_custodian_slips ics
                   JOIN entities e ON ics.entity_id = e.entity_id
                   JOIN ics_items ii ON ics.ics_id = ii.ics_id

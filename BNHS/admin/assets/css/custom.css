@@ -1,0 +1,27 @@
+/* Custom CSS to remove hover effects on dropdown menu */
+
+.navbar-nav .dropdown .nav-link:hover {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+.dropdown-menu a:hover,
+.dropdown-item:hover {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+.navbar-nav .dropdown .dropdown-menu {
+  transition: none !important;
+}
+
+/* Remove hover effect on dropdown toggle */
+.navbar-nav .nav-item.dropdown > a:hover {  
+  background-color: transparent !important;
+}
+
+/* Remove hover effects on dropdown items */
+.dropdown-menu a.media:hover .heading,
+.dropdown-menu a.media:hover p {
+  color: inherit !important;
+} 

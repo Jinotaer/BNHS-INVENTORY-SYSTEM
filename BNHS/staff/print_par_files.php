@@ -215,7 +215,7 @@ ob_start(); // Start output buffering
                         <br>
                         <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($par->custodian_name ?? ''); ?></p>
-                        <p style="text-align: center;">__________________________________________</p>
+                        <p style="text-align: center;">_________________________________________________________</p>
                         <p style="text-align: center;">Signature over Printed Name of Supply and/or Property Custodian</p>
                         <br>
                         <p style="text-align: center; "><?php echo htmlspecialchars($par->custodian_position ?? ''); ?></p>
@@ -233,7 +233,7 @@ ob_start(); // Start output buffering
                         <br>
                         <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($par->end_user_name ?? ''); ?></p>
-                        <p style="text-align: center;">_________________________________________________________</p>
+                        <p style="text-align: center;">________________________________________________</p>
                         <p style="text-align: center;">Signature over Printed Name of End User</p>
                         <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($par->receiver_position ?? ''); ?></p>

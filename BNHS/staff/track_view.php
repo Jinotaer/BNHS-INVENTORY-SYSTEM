@@ -32,7 +32,7 @@ if ($source_table === 'inventory_custodian_slips') {
               i.item_description, ii.inventory_item_no, i.estimated_useful_life,
               ics.end_user_name, ics.end_user_position, ics.end_user_date,
               ics.custodian_name, ics.custodian_position, ics.custodian_date,
-              ics.created_at
+              ics.created_at, ii.article, ii.remarks
             FROM inventory_custodian_slips ics
             JOIN entities e ON ics.entity_id = e.entity_id
             JOIN ics_items ii ON ics.ics_id = ii.ics_id
@@ -66,7 +66,8 @@ if ($source_table === 'inventory_custodian_slips') {
               ris.issued_by_date,
               ris.received_by_name, 
               ris.received_by_designation, 
-              ris.received_by_date
+              ris.received_by_date,
+              ris.article
             FROM requisition_and_issue_slips ris
             JOIN entities e ON ris.entity_id = e.entity_id
             JOIN ris_items ri ON ris.ris_id = ri.ris_id
@@ -91,7 +92,9 @@ if ($source_table === 'inventory_custodian_slips') {
               par.custodian_name, 
               par.custodian_position, 
               par.custodian_date,
-              par.date_acquired
+              par.date_acquired,
+              pi.article,
+              pi.remarks
             FROM property_acknowledgment_receipts par
             JOIN entities e ON par.entity_id = e.entity_id
             JOIN par_items pi ON par.par_id = pi.par_id
@@ -124,7 +127,8 @@ if ($source_table === 'inventory_custodian_slips') {
               iar.barangay_councilor,
               iar.pta_observer, 
               iar.date_received, 
-              iar.property_custodian
+              iar.property_custodian,
+              iar.article
             FROM inspection_acceptance_reports iar
             JOIN entities e ON iar.entity_id = e.entity_id
             JOIN suppliers s ON iar.supplier_id = s.supplier_id
@@ -202,6 +206,16 @@ require_once('partials/_head.php');
                                             <div class="col-md-4">
                                                 <label>Property Number</label>
                                                 <input style="color: #000000; background-color: #f8f9fa;" type="text" class="form-control" value="<?php echo $item['property_number'] ?? 'N/A'; ?>" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <label>Article</label>
+                                                <input style="color: #000000; background-color: #f8f9fa;" type="text" class="form-control" value="<?php echo $item['article'] ?? 'N/A'; ?>" readonly>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <label>Remarks</label>
+                                                <input style="color: #000000; background-color: #f8f9fa;" type="text" class="form-control" value="<?php echo $item['remarks'] ?? 'N/A'; ?>" readonly>
                                             </div>
                                         </div>
                                         <div class="row mb-3">
@@ -412,6 +426,7 @@ require_once('partials/_head.php');
                                                 <input style="color: #000000; background-color: #f8f9fa;" type="text" class="form-control" value="<?php echo number_format($item['total_amount'] ?? 0, 2); ?>" readonly>
                                             </div>
                                         </div>
+                                       
                                         <div class="row mb-3">
                                             <div class="col-md-6">
                                                 <label class="form-label">Item Description</label>
@@ -422,6 +437,16 @@ require_once('partials/_head.php');
                                                 <input style="color: #000000; background-color: #f8f9fa;" type="text" class="form-control" value="<?php echo $item['inventory_item_no'] ?? 'N/A'; ?>" readonly>
                                             </div>
                                         </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">Article</label>
+                                                <input style="color: #000000; background-color: #f8f9fa;" type="text" class="form-control" value="<?php echo $item['article'] ?? 'N/A'; ?>" readonly>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Remarks</label>
+                                                <input style="color: #000000; background-color: #f8f9fa;" type="text" class="form-control" value="<?php echo $item['remarks'] ?? 'N/A'; ?>" readonly>
+                                            </div>
+                                        </div>  
                                         <div class="row mb-3">
                                             <div class="col-md-4">
                                                 <label class="form-label">Estimated Useful Life</label>
