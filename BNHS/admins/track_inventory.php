@@ -5,18 +5,48 @@ include('config/checklogin.php');
 check_login();
 
 // Delete item
-if (isset($_GET['delete'])) {
+if (isset($_GET['delete']) && isset($_GET['table'])) {
   $id = $_GET['delete'];
   $table = $_GET['table'];
-  $adn = "DELETE FROM `$table` WHERE id = ?";
-  $stmt = $mysqli->prepare($adn);
-  if ($stmt) {
-    $stmt->bind_param('i', $id);
-    $stmt->execute();
-    $stmt->close();
-    $success = "Deleted" && header("refresh:1; url=track_inventory.php");
+  
+  // Validate the table name against allowed tables
+  $allowed_tables = [
+    'inspection_acceptance_reports',
+    'inventory_custodian_slip',
+    'requisition_and_issue_slip',
+    'property_acknowledgment_receipt'
+  ];
+  
+  if (in_array($table, $allowed_tables)) {
+    // Map table to its correct primary key column
+    $id_columns = [
+      'inspection_acceptance_reports' => 'iar_id',
+      'inventory_custodian_slip' => 'ics_id',
+      'requisition_and_issue_slip' => 'ris_id',
+      'property_acknowledgment_receipt' => 'par_id'
+    ];
+    
+    $id_column = $id_columns[$table];
+    $adn = "DELETE FROM `$table` WHERE $id_column = ?";
+    
+    $stmt = $mysqli->prepare($adn);
+    if ($stmt) {
+      $stmt->bind_param('i', $id);
+      $result = $stmt->execute();
+      $stmt->close();
+      if ($result) {
+        $success = "Deleted";
+        header("refresh:1; url=track_inventory.php");
+      } else {
+        $err = "Error executing delete statement: " . $mysqli->error;
+        header("refresh:1; url=track_inventory.php");
+      }
+    } else {
+      $err = "Error preparing delete statement: " . $mysqli->error;
+      header("refresh:1; url=track_inventory.php");
+    }
   } else {
-    $err = "Error preparing delete statement: " . $mysqli->error;
+    $err = "Invalid table name provided";
   }
 }
 
@@ -33,8 +63,17 @@ if (isset($_GET['item']) && !empty(trim($_GET['item']))) {
     'property_acknowledgment_receipt'
   ];
   
+  // Map tables to their primary key columns
+  $id_columns = [
+    'inspection_acceptance_reports' => 'iar_id',
+    'inventory_custodian_slip' => 'ics_id',
+    'requisition_and_issue_slip' => 'ris_id',
+    'property_acknowledgment_receipt' => 'par_id'
+  ];
+  
   foreach ($tables as $table) {
-    $sql = "SELECT *, '$table' as source_table FROM `$table` WHERE item_description LIKE CONCAT('%', ?, '%')";
+    $id_column = $id_columns[$table];
+    $sql = "SELECT *, $id_column AS real_id, '$table' as source_table FROM `$table` WHERE item_description LIKE CONCAT('%', ?, '%')";
     $stmt = $mysqli->prepare($sql);
     if ($stmt) {
       $stmt->bind_param('s', $search);
@@ -122,13 +161,13 @@ require_once('partials/_head.php');
                         <td><?php echo $item->total_price ?? $item->total_amount ?? '0.00'; ?></td>
                         <td><?php echo $item->property_custodian ?? $item->custodian_name ?? $item->issued_by_name ?? 'N/A'; ?></td>
                         <td>
-                          <a href="view_item.php?id=<?php echo $item->id; ?>&table=<?php echo $item->source_table; ?>">
+                          <a href="track_view.php?id=<?php echo $item->real_id; ?>&table=<?php echo $item->source_table; ?>">
                             <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i> View</button>
                           </a>
-                          <a href="track_inventory.php?delete=<?php echo $item->id; ?>&table=<?php echo $item->source_table; ?>">
+                          <a href="track_inventory.php?delete=<?php echo $item->real_id; ?>&table=<?php echo $item->source_table; ?>">
                             <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
                           </a>
-                          <a href="track_inventory_update.php?id=<?php echo $item->id; ?>&table=<?php echo $item->source_table; ?>">
+                          <a href="track_inventory_update.php?id=<?php echo $item->real_id; ?>&table=<?php echo $item->source_table; ?>">
                             <button class="btn btn-sm btn-primary"><i class="fas fa-user-edit"></i> Update</button>
                           </a>
                         </td>
@@ -145,7 +184,8 @@ require_once('partials/_head.php');
                     ];
                     
                     foreach ($tables as $table) {
-                      $sql = "SELECT *, '$table' as source_table FROM `$table` ORDER BY created_at DESC";
+                      $id_column = $id_columns[$table];
+                      $sql = "SELECT *, $id_column AS real_id, '$table' as source_table FROM `$table` ORDER BY created_at DESC";
                       $stmt = $mysqli->prepare($sql);
                       if ($stmt) {
                         $stmt->execute();
@@ -165,13 +205,13 @@ require_once('partials/_head.php');
                               <td><?php echo $item->total_price ?? $item->total_amount ?? '0.00'; ?></td>
                               <td><?php echo $item->property_custodian ?? $item->custodian_name ?? $item->issued_by_name ?? 'N/A'; ?></td>
                               <td>
-                                <a href="track_view.php?id=<?php echo $item->id; ?>&table=<?php echo $table; ?>">
+                                <a href="track_view.php?id=<?php echo $item->real_id; ?>&table=<?php echo $table; ?>">
                                   <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i> View</button>
                                 </a>
-                                <a href="track_inventory.php?delete=<?php echo $item->id; ?>&table=<?php echo $table; ?>">
+                                <a href="track_inventory.php?delete=<?php echo $item->real_id; ?>&table=<?php echo $table; ?>">
                                   <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
                                 </a>
-                                <a href="track_inventory_update.php?id=<?php echo $item->id; ?>&table=<?php echo $table; ?>">
+                                <a href="track_inventory_update.php?id=<?php echo $item->real_id; ?>&table=<?php echo $table; ?>">
                                   <button class="btn btn-sm btn-primary"><i class="fas fa-user-edit"></i> Update</button>
                                 </a>
                               </td>

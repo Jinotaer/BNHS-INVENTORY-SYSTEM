@@ -115,8 +115,8 @@ require_once('partials/_head.php');
                 <h2 class="text-center mb-3 pt-3 text-uppercase">Requisition and Issue Slip</h2>
               </div>
               <div class="col text-right">
-                <a href="print_ris_files.php" class="btn btn-sm btn-primary" target="_blank">
-                  <i class="fas fa-print"></i> Print files
+                <a href="print_all_ris_files.php" class="btn btn-sm btn-primary" target="_blank">
+                  <i class="fas fa-print"></i> Print All RIS
                 </a>
               </div>
             </div>
@@ -217,6 +217,13 @@ require_once('partials/_head.php');
                           <button class="btn btn-sm btn-primary">
                             <i class="fas fa-user-edit"></i>
                             Update
+                          </button>
+                        </a>
+                        
+                        <a href="print_ris_files.php?ris_id=<?php echo $ris->ris_id; ?>&item_id=<?php echo $ris->item_id; ?>" target="_blank">
+                          <button class="btn btn-sm btn-info">
+                            <i class="fas fa-print"></i>
+                            Print File
                           </button>
                         </a>
                       </td>

@@ -3,7 +3,26 @@ session_start();
 include('config/config.php');
 require_once __DIR__ . '/assets/vendor/autoload.php'; // Ensure this path is correct
 
-$mpdf = new \Mpdf\Mpdf();
+// Check if ICS ID is provided
+$ics_id = isset($_GET['ics_id']) ? intval($_GET['ics_id']) : 0;
+$item_id = isset($_GET['item_id']) ? intval($_GET['item_id']) : 0;
+$ics_item_id = isset($_GET['ics_item_id']) ? intval($_GET['ics_item_id']) : 0;
+
+if (!$ics_id) {
+    echo "No ICS ID provided. Please specify an ICS to print.";
+    exit;
+}
+
+$mpdf = new \Mpdf\Mpdf([
+    'mode' => 'utf-8',
+    'format' => 'A4',
+    'margin_left' => 10,
+    'margin_right' => 10,
+    'margin_top' => 10,
+    'margin_bottom' => 10,
+    'margin_header' => 5,
+    'margin_footer' => 5
+]);
 ob_start(); // Start output buffering
 ?>
 
@@ -96,6 +115,7 @@ ob_start(); // Start output buffering
             </div>
 
             <?php
+            // Modified query to get only the specific ICS and item
             $ret = "SELECT ics.ics_id, e.entity_name, e.fund_cluster, ics.ics_no,
                     ii.quantity, i.unit, i.unit_cost, (ii.quantity * i.unit_cost) as total_amount,
                     i.item_description, ii.inventory_item_no, i.estimated_useful_life,
@@ -105,11 +125,39 @@ ob_start(); // Start output buffering
                   JOIN entities e ON ics.entity_id = e.entity_id
                   JOIN ics_items ii ON ics.ics_id = ii.ics_id
                   JOIN items i ON ii.item_id = i.item_id
-                  ORDER BY ics.created_at DESC 
-                  LIMIT 1";
+                  WHERE ics.ics_id = ?";
+
+            // If item_id is provided, filter by it as well
+            $params = [$ics_id];
+            if ($item_id) {
+                $ret .= " AND i.item_id = ?";
+                $params[] = $item_id;
+            }
+
+            // If ics_item_id is provided, filter by it as well
+            if ($ics_item_id) {
+                $ret .= " AND ii.ics_item_id = ?";
+                $params[] = $ics_item_id;
+            }
+
             $stmt = $mysqli->prepare($ret);
+
+            if (count($params) === 1) {
+                $stmt->bind_param("i", $params[0]);
+            } elseif (count($params) === 2) {
+                $stmt->bind_param("ii", $params[0], $params[1]);
+            } else {
+                $stmt->bind_param("iii", $params[0], $params[1], $params[2]);
+            }
+
             $stmt->execute();
             $res = $stmt->get_result();
+
+            if ($res->num_rows == 0) {
+                echo "No ICS found with ID: " . $ics_id;
+                exit;
+            }
+
             $ics = $res->fetch_object();
 
             if ($ics) {
@@ -149,29 +197,27 @@ ob_start(); // Start output buffering
                         </thead>
                         <tbody>
                             <?php
-                            $ret = "SELECT ics.ics_id, e.entity_name, e.fund_cluster, ics.ics_no,
-                                    ii.quantity, i.unit, i.unit_cost, (ii.quantity * i.unit_cost) as total_amount,
-                                    i.item_description, ii.inventory_item_no, i.estimated_useful_life,
-                                    ics.end_user_name, ics.end_user_position, ics.end_user_date,
-                                    ics.custodian_name, ics.custodian_position, ics.custodian_date
-                                   FROM inventory_custodian_slips ics
-                                   JOIN entities e ON ics.entity_id = e.entity_id
-                                   JOIN ics_items ii ON ics.ics_id = ii.ics_id
-                                   JOIN items i ON ii.item_id = i.item_id
-                                   ORDER BY ics.created_at DESC";
-                            $stmt = $mysqli->prepare($ret);
-                            $stmt->execute();
-                            $res = $stmt->get_result();
-                            while ($ics = $res->fetch_object()) {
+                            // Reset the result pointer to use the same query results
+                            $res->data_seek(0);
+                            while ($item = $res->fetch_object()) {
                             ?>
                                 <tr>
-                                    <td class="tds"><?php echo htmlspecialchars($ics->quantity ?? ''); ?></td>
-                                    <td class="tds"><?php echo htmlspecialchars($ics->unit ?? ''); ?></td>
-                                    <td class="tds"><?php echo htmlspecialchars($ics->unit_cost ?? ''); ?></td>
-                                    <td class="tds"><?php echo htmlspecialchars($ics->total_amount ?? ''); ?></td>
-                                    <td class="tds"><?php echo htmlspecialchars($ics->item_description ?? ''); ?></td>
-                                    <td class="tds"><?php echo htmlspecialchars($ics->inventory_item_no ?? ''); ?></td>
-                                    <td class="tds"><?php echo htmlspecialchars($ics->estimated_useful_life ?? ''); ?></td>
+                                    <td class="tds"><?php echo htmlspecialchars($item->quantity ?? ''); ?></td>
+                                    <td class="tds"><?php echo htmlspecialchars($item->unit ?? ''); ?></td>
+                                    <td class="tds"><?php echo htmlspecialchars($item->unit_cost ?? ''); ?></td>
+                                    <td class="tds"><?php echo htmlspecialchars($item->total_amount ?? ''); ?></td>
+                                    <td class="tds"><?php echo htmlspecialchars($item->item_description ?? ''); ?></td>
+                                    <td class="tds"><?php echo htmlspecialchars($item->inventory_item_no ?? ''); ?></td>
+                                    <td class="tds"><?php echo htmlspecialchars($item->estimated_useful_life ?? ''); ?></td>
+                                </tr>
+                                <tr>
+                                    <td class="tds"></td>
+                                    <td class="tds"></td>
+                                    <td class="tds"></td>
+                                    <td class="tds"></td>
+                                    <td class="tds"></td>
+                                    <td class="tds"></td>
+                                    <td class="tds"></td>
                                 </tr>
                             <?php } ?>
                         </tbody>
@@ -179,21 +225,6 @@ ob_start(); // Start output buffering
                 </div>
             <?php } ?>
 
-            <?php
-            $ret = "SELECT ics.ics_id, e.entity_name, e.fund_cluster, ics.ics_no,
-                    ics.end_user_name, ics.end_user_position, ics.end_user_date,
-                    ics.custodian_name, ics.custodian_position, ics.custodian_date
-                   FROM inventory_custodian_slips ics
-                   JOIN entities e ON ics.entity_id = e.entity_id
-                   ORDER BY ics.created_at DESC
-                   LIMIT 1";
-            $stmt = $mysqli->prepare($ret);
-            $stmt->execute();
-            $res = $stmt->get_result();
-            $ics = $res->fetch_object();
-
-            if ($ics)
-            ?>
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                 <tr>
                     <!-- Left: Inspection Section -->

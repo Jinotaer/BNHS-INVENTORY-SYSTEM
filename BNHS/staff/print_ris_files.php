@@ -3,21 +3,44 @@ session_start();
 include('config/config.php');
 require_once __DIR__ . '/assets/vendor/autoload.php'; // Ensure this path is correct
 
-$mpdf = new \Mpdf\Mpdf();
+// Check if RIS ID is provided
+$ris_id = isset($_GET['ris_id']) ? intval($_GET['ris_id']) : 0;
+$item_id = isset($_GET['item_id']) ? intval($_GET['item_id']) : 0;
+
+if (!$ris_id) {
+    echo "No RIS ID provided. Please specify a RIS to print.";
+    exit;
+}
+
+$mpdf = new \Mpdf\Mpdf([
+    'mode' => 'utf-8',
+    'format' => 'A4',
+    'margin_left' => 10,
+    'margin_right' => 10,
+    'margin_top' => 10,
+    'margin_bottom' => 10,
+    'margin_header' => 5,
+    'margin_footer' => 5
+]);
+
 ob_start(); // Start output buffering
 
-// Get all RIS records
+// Get specific RIS record
 $ret = "SELECT r.*, e.entity_name, e.fund_cluster 
       FROM requisition_and_issue_slips r
       JOIN entities e ON r.entity_id = e.entity_id
-      ORDER BY r.created_at DESC";
+      WHERE r.ris_id = ?";
 $stmt = $mysqli->prepare($ret);
+$stmt->bind_param("i", $ris_id);
 $stmt->execute();
 $res = $stmt->get_result();
-$all_ris = array();
-while ($ris = $res->fetch_object()) {
-    $all_ris[] = $ris;
+
+if ($res->num_rows == 0) {
+    echo "No RIS found with ID: " . $ris_id;
+    exit;
 }
+
+$ris = $res->fetch_object();
 ?>
 
 <!DOCTYPE html>
@@ -103,7 +126,7 @@ while ($ris = $res->fetch_object()) {
         .table-light {
             background-color: #f8f9fa;
         }
-        
+
         .page-break {
             page-break-after: always;
         }
@@ -112,14 +135,6 @@ while ($ris = $res->fetch_object()) {
 
 <body>
     <div class="container mt-5" id="printableArea">
-        <?php 
-        // Loop through all RIS records
-        foreach ($all_ris as $index => $ris) {
-            // Add page break after first record
-            if ($index > 0) {
-                echo '<div class="page-break"></div>';
-            }
-        ?>
         <div class="text-center mb-4">
             <img src="assets/img/brand/bnhs.png" alt="BNHS Logo" class="img-fluid">
         </div>
@@ -172,15 +187,30 @@ while ($ris = $res->fetch_object()) {
                     </thead>
                     <tbody>
                         <?php
-                        // Get the RIS items
+                        // Get the RIS items with optional item filter
                         $items_query = "SELECT ri.*, i.stock_no, i.unit, i.item_description FROM ris_items ri 
                                       JOIN items i ON ri.item_id = i.item_id
                                       WHERE ri.ris_id = ?";
+
+                        $params = [$ris_id];
+
+                        // If item_id is provided, filter by it as well
+                        if ($item_id) {
+                            $items_query .= " AND ri.item_id = ?";
+                            $params[] = $item_id;
+                        }
+
                         $items_stmt = $mysqli->prepare($items_query);
-                        $items_stmt->bind_param("i", $ris->ris_id);
+
+                        if (count($params) === 1) {
+                            $items_stmt->bind_param("i", $params[0]);
+                        } else {
+                            $items_stmt->bind_param("ii", $params[0], $params[1]);
+                        }
+
                         $items_stmt->execute();
                         $items_res = $items_stmt->get_result();
-                        
+
                         while ($item = $items_res->fetch_object()) {
                             // Determine Yes/No for stock available
                             $yes_mark = ($item->stock_available > 0) ? "✓" : "";
@@ -195,6 +225,16 @@ while ($ris = $res->fetch_object()) {
                                 <td class="tds"><?php echo $no_mark; ?></td>
                                 <td class="tds"><?php echo htmlspecialchars($item->issued_qty ?? ''); ?></td>
                                 <td class="tds"><?php echo htmlspecialchars($item->remarks ?? ''); ?></td>
+                            </tr>
+                            <tr>
+                                <td class="tds"></td>
+                                <td class="tds"></td>
+                                <td class="tds"></td>
+                                <td class="tds"></td>
+                                <td class="tds"></td>
+                                <td class="tds"></td>
+                                <td class="tds"></td>
+                                <td class="tds"></td>
                             </tr>
                         <?php } ?>
                     </tbody>
@@ -253,7 +293,6 @@ while ($ris = $res->fetch_object()) {
                 </tbody>
             </table>
         </div>
-        <?php } ?>
     </div>
 </body>
 
@@ -262,5 +301,5 @@ while ($ris = $res->fetch_object()) {
 <?php
 $html = ob_get_clean();
 $mpdf->WriteHTML($html);
-$mpdf->Output("RIS_Report_" . date("Y_m_d") . ".pdf", 'I'); // 'I' to display inline
+$mpdf->Output("RIS_Report_" . $ris->ris_no . "_" . date("Y_m_d") . ".pdf", 'I'); // 'I' to display inline
 ?>

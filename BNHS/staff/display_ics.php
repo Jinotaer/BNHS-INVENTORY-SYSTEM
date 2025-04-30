@@ -114,11 +114,11 @@ require_once('partials/_head.php');
               <div class="col">
                 <h2 class="text-center mb-3 pt-3 text-uppercase">Inventory Custodian Slip</h2>
               </div>
-              <div class="col text-right">
+              <!-- <div class="col text-right">
                 <a href="print_ics_files.php" class="btn btn-sm btn-primary" target="_blank">
                   <i class="fas fa-print"></i> Print files
                 </a>
-              </div>
+              </div> -->
             </div>
             <div class="table-responsive">
               <table class="table align-items-center table-flush">
@@ -194,6 +194,12 @@ require_once('partials/_head.php');
                           <button class="btn btn-sm btn-primary">
                             <i class="fas fa-user-edit"></i>
                             Update
+                          </button>
+                        </a>
+                        <a href="print_ics_files.php?ics_id=<?php echo $ics->ics_id . '&item_id=' . $ics->item_id . '&ics_item_id=' . $ics->ics_item_id; ?>" target="_blank">
+                          <button class="btn btn-sm btn-info">
+                            <i class="fas fa-print"></i>
+                            Print File
                           </button>
                         </a>
                       </td>

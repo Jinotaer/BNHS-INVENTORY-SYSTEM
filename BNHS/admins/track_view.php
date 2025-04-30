@@ -26,8 +26,91 @@ if (!in_array($source_table, $tables) || $record_id <= 0) {
 }
 
 // Fetch existing record
-$query = "SELECT * FROM `$source_table` WHERE id = ?";
+if ($source_table === 'inventory_custodian_slip') {
+    $query = "SELECT ics.ics_id as id, e.entity_name, e.fund_cluster, ics.ics_no,
+              ii.quantity, i.unit, i.unit_cost, (ii.quantity * i.unit_cost) as total_amount,
+              i.item_description, ii.inventory_item_no, i.estimated_useful_life,
+              ics.end_user_name, ics.end_user_position, ics.date_received_user,
+              ics.custodian_name, ics.custodian_position, ics.date_received_custodian,
+              ics.created_at
+            FROM inventory_custodian_slips ics
+            JOIN entities e ON ics.entity_id = e.entity_id
+            JOIN ics_items ii ON ics.ics_id = ii.ics_id
+            JOIN items i ON ii.item_id = i.item_id
+            WHERE ics.ics_id = ?";
+} else if ($source_table === 'requisition_and_issue_slip') {
+    $query = "SELECT ris.ris_id as id, e.entity_name, e.fund_cluster,
+              ris.division, ris.office, ris.responsibility_code, ris.ris_no,
+              i.stock_no, i.unit, i.item_description,
+              ri.requested_qty, ri.stock_available, ri.issued_qty,
+              ris.purpose, ris.remarks,
+              ris.requested_by_name, ris.requested_by_designation, ris.requested_by_date,
+              ris.approved_by_name, ris.approved_by_designation, ris.approved_by_date,
+              ris.issued_by_name, ris.issued_by_designation, ris.issued_by_date,
+              ris.received_by_name, ris.received_by_designation, ris.received_by_date
+            FROM requisition_and_issue_slips ris
+            JOIN entities e ON ris.entity_id = e.entity_id
+            JOIN ris_items ri ON ris.ris_id = ri.ris_id
+            JOIN items i ON ri.item_id = i.item_id
+            WHERE ris.ris_id = ?";
+} else if ($source_table === 'property_acknowledgment_receipt') {
+    $query = "SELECT par.par_id as id, e.entity_name, e.fund_cluster, 
+              par.par_no, pi.quantity, i.unit, i.unit_cost, 
+              pi.total_amount, i.item_description, pi.property_number,
+              par.end_user_name, par.receiver_position, 
+              par.receiver_date,
+              par.custodian_name, 
+              par.custodian_position, 
+              par.custodian_date,
+              par.date_acquired
+            FROM property_acknowledgment_receipts par
+            JOIN entities e ON par.entity_id = e.entity_id
+            JOIN par_items pi ON par.par_id = pi.par_id
+            JOIN items i ON pi.item_id = i.item_id
+            WHERE par.par_id = ?";
+} else if ($source_table === 'inspection_acceptance_reports') {
+    $query = "SELECT 
+              iar.iar_id as id, 
+              e.entity_name, 
+              e.fund_cluster, 
+              s.supplier_name as supplier,
+              iar.po_no_date, 
+              iar.req_office, 
+              iar.responsibility_center, 
+              iar.iar_no, 
+              iar.iar_date,
+              iar.invoice_no_date, 
+              ii.quantity, 
+              i.unit, 
+              ii.unit_price, 
+              ii.total_price,
+              i.item_description, 
+              i.stock_no, 
+              ii.remarks,
+              iar.receiver_name, 
+              iar.teacher_id, 
+              iar.position,
+              iar.date_inspected, 
+              iar.inspectors, 
+              iar.barangay_councilor,
+              iar.pta_observer, 
+              iar.date_received, 
+              iar.property_custodian
+            FROM inspection_acceptance_reports iar
+            JOIN entities e ON iar.entity_id = e.entity_id
+            JOIN suppliers s ON iar.supplier_id = s.supplier_id
+            JOIN iar_items ii ON iar.iar_id = ii.iar_id
+            JOIN items i ON ii.item_id = i.item_id
+            WHERE iar.iar_id = ?";
+} else {
+    $query = "SELECT * FROM `$source_table` WHERE id = ?";
+}
+
 $stmt = $mysqli->prepare($query);
+if (!$stmt) {
+    die("Prepare failed: " . $mysqli->error . " Query was: " . $query);
+}
+
 $stmt->bind_param("i", $record_id);
 $stmt->execute();
 $result = $stmt->get_result();

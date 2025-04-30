@@ -15,6 +15,14 @@ $tables = [
   'property_acknowledgment_receipt'
 ];
 
+// Map tables to their primary key columns
+$id_columns = [
+  'inspection_acceptance_reports' => 'iar_id',
+  'inventory_custodian_slip' => 'ics_id',
+  'requisition_and_issue_slip' => 'ris_id',
+  'property_acknowledgment_receipt' => 'par_id'
+];
+
 // Get parameters
 $source_table = isset($_GET['table']) ? $_GET['table'] : '';
 $record_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
@@ -24,8 +32,11 @@ if (!in_array($source_table, $tables) || $record_id <= 0) {
     die("Invalid table or ID.");
 }
 
+// Get the correct primary key column for this table
+$id_column = $id_columns[$source_table];
+
 // Fetch existing record
-$query = "SELECT * FROM `$source_table` WHERE id = ?";
+$query = "SELECT * FROM `$source_table` WHERE $id_column = ?";
 $stmt = $mysqli->prepare($query);
 $stmt->bind_param("i", $record_id);
 $stmt->execute();
@@ -86,11 +97,13 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
 
     if (!empty($updates)) {
         $setClause = implode(', ', $updates);
-        $sql = "UPDATE `$source_table` SET $setClause WHERE id = ?";
+        $sql = "UPDATE `$source_table` SET $setClause WHERE $id_column = ?";
         
         // Debug information
         error_log("SQL Query: " . $sql);
         error_log("Table: " . $source_table);
+        error_log("ID Column: " . $id_column);
+        error_log("Record ID: " . $record_id);
         error_log("Updates: " . print_r($updates, true));
         error_log("Values: " . print_r($values, true));
         

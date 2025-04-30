@@ -116,11 +116,11 @@ require_once('partials/_head.php');
               <div class="col">
                 <h2 class="text-center mb-3 pt-3 text-uppercase">Purchase Acceptance Report</h2>
               </div>
-              <div class="col text-right">
+              <!-- <div class="col text-right">
                 <a href="print_par_files.php" class="btn btn-sm btn-primary" target="_blank">
                   <i class="material-icons-sharp text-primary"></i>
                   Print files</a>
-              </div>
+              </div> -->
             </div>
             <div class="table-responsive">
               <table class="table align-items-center table-flush">
@@ -188,6 +188,12 @@ require_once('partials/_head.php');
                           <button class="btn btn-sm btn-primary">
                             <i class="fas fa-user-edit"></i>
                             Update
+                          </button>
+                        </a>
+                        <a href="print_par_files.php?par_id=<?php echo $par->par_id; ?>&item_id=<?php echo $par->item_id; ?>" target="_blank">
+                          <button class="btn btn-sm btn-info">
+                            <i class="fas fa-print"></i>
+                            Print File
                           </button>
                         </a>
                       </td>

@@ -223,9 +223,9 @@ require_once('partials/_head.php');
                           </button>
                         </a>
                         <a href="print_iar_files.php?iar_id=<?php echo $iar->iar_id . '&item_id=' . $iar->item_id . '&iar_item_id=' . $iar->iar_item_id; ?>" target="_blank">
-                          <button class="btn btn-sm btn-primary">
+                          <button class="btn btn-sm btn-info">
                             <i class="fas fa-print"></i>
-                            print file
+                            Print File
                           </button>
                         </a>
                       </td>

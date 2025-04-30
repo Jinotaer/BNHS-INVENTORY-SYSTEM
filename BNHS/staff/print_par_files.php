@@ -3,7 +3,26 @@ session_start();
 include('config/config.php');
 require_once __DIR__ . '/assets/vendor/autoload.php'; // Ensure this path is correct
 
-$mpdf = new \Mpdf\Mpdf();
+// Check if PAR ID is provided
+$par_id = isset($_GET['par_id']) ? intval($_GET['par_id']) : 0;
+$item_id = isset($_GET['item_id']) ? intval($_GET['item_id']) : 0;
+
+if (!$par_id) {
+    echo "No PAR ID provided. Please specify a PAR to print.";
+    exit;
+}
+
+$mpdf = new \Mpdf\Mpdf([
+  'mode' => 'utf-8',
+  'format' => 'A4',
+  'margin_left' => 10,
+  'margin_right' => 10,
+  'margin_top' => 10,
+  'margin_bottom' => 10,
+  'margin_header' => 5,
+  'margin_footer' => 5
+]);
+
 ob_start(); // Start output buffering
 ?>
 
@@ -91,90 +110,103 @@ ob_start(); // Start output buffering
             </div>
 
             <?php
-            // Joining property_acknowledgment_receipts with entities to get entity name
+            // Get specific PAR record
             $ret = "SELECT par.*, e.entity_name, e.fund_cluster 
                    FROM property_acknowledgment_receipts par 
                    JOIN entities e ON par.entity_id = e.entity_id 
-                   ORDER BY par.created_at DESC";
+                   WHERE par.par_id = ?";
             
             $stmt = $mysqli->prepare($ret);
-            if ($stmt) {
-                $stmt->execute();
-                $res = $stmt->get_result();
-                $par = $res->fetch_object();
-
-                if ($par) {
+            $stmt->bind_param("i", $par_id);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            
+            if ($res->num_rows == 0) {
+                echo "No PAR found with ID: " . $par_id;
+                exit;
+            }
+            
+            $par = $res->fetch_object();
             ?>
-                <table>
-                    <tr>
-                        <td class="half">
-                            <p><strong>Entity Name : </strong><?php echo htmlspecialchars($par->entity_name ?? ''); ?></p>
-                            <br>
-                            <p><strong>Fund Cluster : </strong><?php echo htmlspecialchars($par->fund_cluster ?? ''); ?></p>
-                        </td>
-                        <td class="half">
-                            <br>
-                            <br>
-                            <p><strong>PAR No.: </strong><?php echo htmlspecialchars($par->par_no ?? ''); ?></p>
-                            <br>
-                            <br>
-                        </td>
-                    </tr>
-                </table>
+            <table>
+                <tr>
+                    <td class="half">
+                        <p><strong>Entity Name : </strong><?php echo htmlspecialchars($par->entity_name ?? ''); ?></p>
+                        <br>
+                        <p><strong>Fund Cluster : </strong><?php echo htmlspecialchars($par->fund_cluster ?? ''); ?></p>
+                    </td>
+                    <td class="half">
+                        <br>
+                        <br>
+                        <p><strong>PAR No.: </strong><?php echo htmlspecialchars($par->par_no ?? ''); ?></p>
+                        <br>
+                        <br>
+                    </td>
+                </tr>
+            </table>
 
-                <div class="table-responsive">
-                    <table class="table table-bordered text-center align-middle">
-                        <thead class="table-light">
+            <div class="table-responsive">
+                <table class="table table-bordered text-center align-middle">
+                    <thead class="table-light">
+                        <tr>
+                        <th class="tds" scope="col">Quantity</th>
+                        <th class="tds" scope="col">Unit</th>
+                        <th class="tds" style="width: 40%;" scope="col">Description</th>
+                        <th class="tds" scope="col">Property Number</th>
+                        <th class="tds" scope="col">Date Acquired</th>
+                        <th class="tds" scope="col">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php
+                        // Get the PAR items with optional item filter
+                        $items_query = "SELECT pi.*, i.item_description, i.unit, i.unit_cost, i.stock_no
+                                      FROM par_items pi 
+                                      JOIN items i ON pi.item_id = i.item_id 
+                                      WHERE pi.par_id = ?";
+                        
+                        $params = [$par_id];
+                        
+                        // If item_id is provided, filter by it as well
+                        if ($item_id) {
+                            $items_query .= " AND pi.item_id = ?";
+                            $params[] = $item_id;
+                        }
+                        
+                        $items_stmt = $mysqli->prepare($items_query);
+                        
+                        if (count($params) === 1) {
+                            $items_stmt->bind_param("i", $params[0]);
+                        } else {
+                            $items_stmt->bind_param("ii", $params[0], $params[1]);
+                        }
+                        
+                        $items_stmt->execute();
+                        $items_res = $items_stmt->get_result();
+                        
+                        while ($item = $items_res->fetch_object()) {
+                        ?>
                             <tr>
-                            <th class="tds" scope="col">Quantity</th>
-                            <th class="tds" scope="col">Unit</th>
-                            <th class="tds" style="width: 40%;" scope="col">Description</th>
-                            <th class="tds" scope="col">Property Number</th>
-                            <th class="tds" scope="col">Date Acquired</th>
-                            <th class="tds" scope="col">Amount</th>
+                                <td class="tds"><?php echo htmlspecialchars($item->quantity ?? ''); ?></td>
+                                <td class="tds"><?php echo htmlspecialchars($item->unit ?? ''); ?></td>
+                                <td class="tds"><?php echo htmlspecialchars($item->item_description ?? ''); ?></td>
+                                <td class="tds"><?php echo htmlspecialchars($item->property_number ?? ''); ?></td>
+                                <td class="tds"><?php echo htmlspecialchars($par->date_acquired ?? ''); ?></td>
+                                <td class="tds"><?php echo htmlspecialchars($item->unit_cost ?? ''); ?></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <?php
-                            // Get the PAR ID from the first result
-                            $par_id = $par->par_id;
-                            
-                            // Query to get all items associated with this PAR
-                            $items_query = "SELECT pi.*, i.item_description, i.unit, i.unit_cost, i.stock_no
-                                           FROM par_items pi 
-                                           JOIN items i ON pi.item_id = i.item_id 
-                                           WHERE pi.par_id = ?";
-                            
-                            $items_stmt = $mysqli->prepare($items_query);
-                            if ($items_stmt) {
-                                $items_stmt->bind_param("i", $par_id);
-                                $items_stmt->execute();
-                                $items_res = $items_stmt->get_result();
-                                
-                                while ($item = $items_res->fetch_object()) {
-                            ?>
-                                <tr>
-                                    <td class="tds"><?php echo htmlspecialchars($item->quantity ?? ''); ?></td>
-                                    <td class="tds"><?php echo htmlspecialchars($item->unit ?? ''); ?></td>
-                                    <td class="tds"><?php echo htmlspecialchars($item->item_description ?? ''); ?></td>
-                                    <td class="tds"><?php echo htmlspecialchars($item->property_number ?? ''); ?></td>
-                                    <td class="tds"><?php echo htmlspecialchars($par->date_acquired ?? ''); ?></td>
-                                    <td class="tds"><?php echo htmlspecialchars($item->unit_cost ?? ''); ?></td>
-                                </tr>
-                            <?php 
-                                }
-                                $items_stmt->close();
-                            }
-                            ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php 
-                }
-                
-                // No need to run a second query for the same PAR record
-                // Just reuse the PAR data we already have
-            ?>
+                            <tr>
+                                <td class="tds"></td>
+                                <td class="tds"></td>
+                                <td class="tds"></td>
+                                <td class="tds"></td>
+                                <td class="tds"></td>
+                                <td class="tds"></td>
+                            </tr>
+                        <?php } ?>
+                    </tbody>
+                </table>
+            </div>
+            
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                 <tr>
                     <!-- Left: Received From Section -->
@@ -214,12 +246,6 @@ ob_start(); // Start output buffering
                     </td>
                 </tr>
             </table>
-            <?php
-                $stmt->close();
-            } else {
-                echo "<div class='alert alert-danger'>Database query error</div>";
-            }
-            ?>
         </div>
     </div>
 </body>
@@ -229,5 +255,5 @@ ob_start(); // Start output buffering
 <?php
 $html = ob_get_clean();
 $mpdf->WriteHTML($html);
-$mpdf->Output("PAR_Report_" . date("Y_m_d") . ".pdf", 'I'); // 'I' to display inline
+$mpdf->Output("PAR_Report_" . $par->par_no . "_" . date("Y_m_d") . ".pdf", 'I'); // 'I' to display inline
 ?>
