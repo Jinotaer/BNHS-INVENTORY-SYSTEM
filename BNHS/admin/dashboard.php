@@ -134,7 +134,7 @@ function getCount($mysqli, $table)
                     <th scope="col">Data Acquired</th>
                     <th scope="col">Unit Cost</th>
                     <th scope="col">Total Cost</th>
-                    <th scope="col">Actions</th>
+                    <!-- <th scope="col">Actions</th> -->
                   </tr>
                 </thead>
                 <tbody>
@@ -166,7 +166,7 @@ function getCount($mysqli, $table)
                         <td><?php echo date('M d, Y', strtotime($par->date_acquired)); ?></td>
                         <td>₱<?php echo isset($par->unit_cost) ? number_format($par->unit_cost, 2) : '0.00'; ?></td>
                         <td>₱<?php echo isset($par->total_amount) ? number_format($par->total_amount, 2) : '0.00'; ?></td>
-                        <td>
+                        <!-- <td>
                           <a href="rpcppe.php?delete=<?php echo $par->par_id; ?>"
                             onclick="return confirm('Are you sure you want to delete this record?')">
                             <button class="btn btn-sm btn-danger">
@@ -180,7 +180,7 @@ function getCount($mysqli, $table)
                               Update
                             </button>
                           </a>
-                        </td>
+                        </td> -->
                       </tr>
                   <?php
                     }
@@ -223,7 +223,7 @@ function getCount($mysqli, $table)
                     <th scope="col">Unit Cost</th>
                     <th scope="col">Total Amount</th>
                     <th scope="col">Item Description</th>
-                    <th scope="col">Actions</th>
+                    <!-- <th scope="col">Actions</th> -->
                   </tr>
                 </thead>
                 <tbody>
@@ -254,7 +254,7 @@ function getCount($mysqli, $table)
                         <td>₱<?php echo isset($ics->unit_cost) ? number_format($ics->unit_cost, 2) : '0.00'; ?></td>
                         <td>₱<?php echo isset($ics->total_amount) ? number_format($ics->total_amount, 2) : '0.00'; ?></td>
                         <td><?php echo isset($ics->item_description) ? htmlspecialchars($ics->item_description) : 'N/A'; ?></td>
-                        <td>
+                        <!-- <td>
                            <a href="display_ics.php?delete=<?php echo $ics->ics_id; ?>">
                           <button class="btn btn-sm btn-danger">
                             <i class="fas fa-trash"></i>
@@ -267,7 +267,7 @@ function getCount($mysqli, $table)
                             Update
                           </button>
                         </a>
-                        </td>
+                        </td> -->
                       </tr>
                   <?php
                     }

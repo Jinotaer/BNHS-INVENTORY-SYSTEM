@@ -31,7 +31,7 @@ require_once('partials/_head.php');
       <div class="row">
         <div class="col">
           <div class="card shadow">
-            <div class="card-header border-0" style="text-align: center;">
+            <div class="card-header border-0" style="text-align: center; padding: 30px;">
             <strong>REPORT ON THE PHYSICAL COUNT OF PROPERTY, PLANT AND EQUIPMENT</strong>  
             </div>
             <div class="table-responsive">
@@ -115,6 +115,17 @@ require_once('partials/_head.php');
   <?php
   require_once('partials/_scripts.php');
   ?>
+  <script src="//cdn.datatables.net/2.2.2/js/dataTables.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      $('#parTable').DataTable({
+        "drawCallback": function() {
+          // Ensures the positioning is applied after table drawing
+          $('.dataTables_wrapper').css('position', 'relative');
+        }
+      });
+    });
+  </script>
 </body>
 
 </html>

@@ -22,6 +22,167 @@ function getCount($mysqli, $table)
     return 0;
   }
 }
+
+//Delete individual item - handles both ICS and PAR items
+if (isset($_GET['delete_item']) && isset($_GET['type'])) {
+  $item_id = $_GET['delete_item'];
+  $type = $_GET['type'];
+
+  // Start transaction
+  $mysqli->begin_transaction();
+
+  try {
+    if ($type === 'ics') {
+      // First get the item_id from ics_items
+      $stmt = $mysqli->prepare("SELECT item_id FROM ics_items WHERE ics_item_id = ?");
+      $stmt->bind_param('i', $item_id);
+      $stmt->execute();
+      $result = $stmt->get_result();
+      $item_id_to_delete = $result->fetch_object()->item_id;
+
+      // Delete from ics_items
+      $stmt = $mysqli->prepare("DELETE FROM ics_items WHERE ics_item_id = ?");
+      $stmt->bind_param('i', $item_id);
+      $stmt->execute();
+
+      $redirect_url = "dashboard.php";
+    } else if ($type === 'par') {
+      // First get the item_id from par_items
+      $stmt = $mysqli->prepare("SELECT item_id FROM par_items WHERE par_item_id = ?");
+      $stmt->bind_param('i', $item_id);
+      $stmt->execute();
+      $result = $stmt->get_result();
+      $item_id_to_delete = $result->fetch_object()->item_id;
+
+      // Delete from par_items
+      $stmt = $mysqli->prepare("DELETE FROM par_items WHERE par_item_id = ?");
+      $stmt->bind_param('i', $item_id);
+      $stmt->execute();
+
+      $redirect_url = "dashboard.php";
+    } else {
+      throw new Exception("Invalid item type specified");
+    }
+
+    // Delete from items
+    $stmt = $mysqli->prepare("DELETE FROM items WHERE item_id = ?");
+    $stmt->bind_param('i', $item_id_to_delete);
+    $stmt->execute();
+
+    // Commit transaction
+    $mysqli->commit();
+    $success = "Item Deleted Successfully";
+    header("refresh:1; url=" . $redirect_url);
+  } catch (Exception $e) {
+    // Rollback transaction on error
+    $mysqli->rollback();
+    $err = "Error: " . $e->getMessage();
+    header("refresh:1; url=dashboard.php");
+  }
+}
+
+//Delete record - handles both ICS and PAR records
+if (isset($_GET['delete']) && isset($_GET['type'])) {
+  $id = $_GET['delete'];
+  $type = $_GET['type'];
+
+  // Start transaction
+  $mysqli->begin_transaction();
+
+  try {
+    if ($type === 'ics') {
+      // Get all item_ids from ics_items for this ICS
+      $stmt = $mysqli->prepare("SELECT item_id FROM ics_items WHERE ics_id = ?");
+      $stmt->bind_param('i', $id);
+      $stmt->execute();
+      $result = $stmt->get_result();
+
+      // Delete from ics_items first
+      $stmt = $mysqli->prepare("DELETE FROM ics_items WHERE ics_id = ?");
+      $stmt->bind_param('i', $id);
+      $stmt->execute();
+
+      // Delete corresponding items
+      while ($row = $result->fetch_object()) {
+        $stmt = $mysqli->prepare("DELETE FROM items WHERE item_id = ?");
+        $stmt->bind_param('i', $row->item_id);
+        $stmt->execute();
+      }
+
+      // Delete from inventory_custodian_slips
+      $stmt = $mysqli->prepare("DELETE FROM inventory_custodian_slips WHERE ics_id = ?");
+      $stmt->bind_param('i', $id);
+      $stmt->execute();
+
+      $redirect_url = "dashboard.php";
+    } else if ($type === 'par') {
+      // Get all item_ids from par_items for this par
+      $stmt = $mysqli->prepare("SELECT item_id FROM par_items WHERE par_id = ?");
+      $stmt->bind_param('i', $id);
+      $stmt->execute();
+      $result = $stmt->get_result();
+
+      // Delete from par_items first
+      $stmt = $mysqli->prepare("DELETE FROM par_items WHERE par_id = ?");
+      $stmt->bind_param('i', $id);
+      $stmt->execute();
+
+      // Delete corresponding items
+      while ($row = $result->fetch_object()) {
+        $stmt = $mysqli->prepare("DELETE FROM items WHERE item_id = ?");
+        $stmt->bind_param('i', $row->item_id);
+        $stmt->execute();
+      }
+
+      // Delete from property_acknowledgment_receipts
+      $stmt = $mysqli->prepare("DELETE FROM property_acknowledgment_receipts WHERE par_id = ?");
+      $stmt->bind_param('i', $id);
+      $stmt->execute();
+
+      $redirect_url = "dashboard.php";
+    } else {
+      throw new Exception("Invalid record type specified");
+    }
+
+    // Commit transaction
+    $mysqli->commit();
+    $success = "Record Deleted Successfully";
+    header("refresh:1; url=" . $redirect_url);
+  } catch (Exception $e) {
+    // Rollback transaction on error
+    $mysqli->rollback();
+    $err = "Error: " . $e->getMessage();
+    header("refresh:1; url=dashboard.php");
+  }
+}
+
+// Handle legacy delete requests (for backward compatibility)
+if (isset($_GET['delete']) && !isset($_GET['type'])) {
+  // Determine type based on referring page or other context
+  $id = $_GET['delete'];
+  $referer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+
+  if (strpos($referer, 'par') !== false || strpos($referer, 'display_par.php') !== false) {
+    header("Location: dashboard.php?delete=" . $id . "&type=par");
+  } else {
+    header("Location: dashboard.php?delete=" . $id . "&type=ics");
+  }
+  exit;
+}
+
+// Handle legacy delete_item requests (for backward compatibility)
+if (isset($_GET['delete_item']) && !isset($_GET['type'])) {
+  // Determine type based on referring page or other context
+  $item_id = $_GET['delete_item'];
+  $referer = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+
+  if (strpos($referer, 'par') !== false || strpos($referer, 'display_par.php') !== false) {
+    header("Location: dashboard.php?delete_item=" . $item_id . "&type=par");
+  } else {
+    header("Location: dashboard.php?delete_item=" . $item_id . "&type=ics");
+  }
+  exit;
+}
 ?>
 
 <body>
@@ -124,24 +285,31 @@ function getCount($mysqli, $table)
               <table id="parTable" class="table align-items-center table-flush">
                 <thead class="thead-light">
                   <tr>
-                    <th scope="col">Entity Name</th>
+                    <th class="text-primary" scope="col">Entity Name</th>
                     <th scope="col">Fund Cluster</th>
-                    <th scope="col">PAR No.</th>
+                    <th class="text-primary" scope="col">PAR No.</th>
                     <th scope="col">Quantity</th>
-                    <th scope="col">Unit</th>
+                    <th class="text-primary" scope="col">Unit</th>
                     <th scope="col">Item Description</th>
-                    <th scope="col">Property Number</th>
+                    <th class="text-primary" scope="col">Property Number</th>
                     <th scope="col">Data Acquired</th>
-                    <th scope="col">Unit Cost</th>
-                    <th scope="col">Total Cost</th>
-                    <th scope="col">Actions</th>
+                    <th class="text-primary" scope="col">Unit Cost</th>
+                    <th scope="col">Total Cost</th>1
+                    <th class="text-primary" scope="col">User Name</th>
+                    <th scope="col">Position/Office</th>
+                    <th class="text-primary" scope="col">Date</th>
+                    <th scope="col">Property Custodian Name</th>
+                    <th class="text-primary" scope="col">Position/Office</th>
+                    <th scope="col">Date</th>
+                    <!-- <th scope="col">Actions</th> -->
                   </tr>
                 </thead>
                 <tbody>
                   <?php
                   try {
                     $ret = "SELECT par.*, ent.entity_name, ent.fund_cluster, pi.quantity, pi.property_number, 
-                              i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount
+                              i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount,
+                              pi.par_item_id
                               FROM property_acknowledgment_receipts par
                               LEFT JOIN entities ent ON par.entity_id = ent.entity_id
                               LEFT JOIN par_items pi ON par.par_id = pi.par_id
@@ -156,31 +324,46 @@ function getCount($mysqli, $table)
                     while ($par = $res->fetch_object()) {
                   ?>
                       <tr>
-                        <td><?php echo isset($par->entity_name) ? htmlspecialchars($par->entity_name) : 'N/A'; ?></td>
+                        <td class="text-primary"><?php echo isset($par->entity_name) ? htmlspecialchars($par->entity_name) : 'N/A'; ?></td>
                         <td><?php echo isset($par->fund_cluster) ? htmlspecialchars($par->fund_cluster) : 'N/A'; ?></td>
-                        <td><?php echo htmlspecialchars($par->par_no); ?></td>
+                        <td class="text-primary"><?php echo htmlspecialchars($par->par_no); ?></td>
                         <td><?php echo isset($par->quantity) ? number_format($par->quantity) : '0'; ?></td>
-                        <td><?php echo isset($par->unit) ? htmlspecialchars($par->unit) : 'N/A'; ?></td>
+                        <td class="text-primary"><?php echo isset($par->unit) ? htmlspecialchars($par->unit) : 'N/A'; ?></td>
                         <td><?php echo isset($par->item_description) ? htmlspecialchars($par->item_description) : 'N/A'; ?></td>
-                        <td><?php echo isset($par->property_number) ? htmlspecialchars($par->property_number) : 'N/A'; ?></td>
+                        <td class="text-primary"><?php echo isset($par->property_number) ? htmlspecialchars($par->property_number) : 'N/A'; ?></td>
                         <td><?php echo date('M d, Y', strtotime($par->date_acquired)); ?></td>
-                        <td>₱<?php echo isset($par->unit_cost) ? number_format($par->unit_cost, 2) : '0.00'; ?></td>
+                        <td class="text-primary">₱<?php echo isset($par->unit_cost) ? number_format($par->unit_cost, 2) : '0.00'; ?></td>
                         <td>₱<?php echo isset($par->total_amount) ? number_format($par->total_amount, 2) : '0.00'; ?></td>
-                        <td>
-                          <a href="rpcppe.php?delete=<?php echo $par->par_id; ?>"
+                        <td class="text-primary"><?php echo $par->end_user_name; ?></td>
+                        <td ><?php echo $par->receiver_position; ?></td>
+                        <td class="text-primary"><?php echo $par->receiver_date; ?></td>
+                        <td><?php echo $par->custodian_name; ?></td>
+                        <td class="text-primary"><?php echo $par->custodian_position; ?></td>
+                        <td><?php echo date('M d, Y', strtotime($par->custodian_date)); ?></td>
+                        <!-- <td>
+                          <a href="dashboard.php?delete=<?php echo $par->par_id; ?>&type=par"
                             onclick="return confirm('Are you sure you want to delete this record?')">
                             <button class="btn btn-sm btn-danger">
                               <i class="fas fa-trash"></i>
                               Delete
                             </button>
                           </a>
+                          <?php if (isset($par->par_item_id)): ?>
+                          <a href="dashboard.php?delete_item=<?php echo $par->par_item_id; ?>&type=par"
+                            onclick="return confirm('Are you sure you want to delete this item?')">
+                            <button class="btn btn-sm btn-danger">
+                              <i class="fas fa-trash-alt"></i>
+                              Delete 
+                            </button>
+                          </a>
+                          <?php endif; ?>
                           <a href="par_update.php?update=<?php echo $par->par_id; ?>">
                             <button class="btn btn-sm btn-primary">
                               <i class="fas fa-user-edit"></i>
                               Update
                             </button>
                           </a>
-                        </td>
+                        </td> -->
                       </tr>
                   <?php
                     }
@@ -215,22 +398,31 @@ function getCount($mysqli, $table)
               <table class="table align-items-center table-flush">
                 <thead class="thead-light">
                   <tr>
-                    <th scope="col">Entity Name</th>
+                    <th class="text-primary" scope="col">Entity Name</th>
                     <th scope="col">Fund Cluster</th>
-                    <th scope="col">ICS No.</th>
+                    <th class="text-primary" scope="col">ICS No.</th>
                     <th scope="col">Quantity</th>
-                    <th scope="col">Unit</th>
+                    <th class="text-primary" scope="col">Unit</th>
                     <th scope="col">Unit Cost</th>
-                    <th scope="col">Total Amount</th>
+                    <th class="text-primary" scope="col">Total Amount</th>
                     <th scope="col">Item Description</th>
-                    <th scope="col">Actions</th>
+                    <th class="text-primary" scope="col">Inventory Item No.</th>
+                    <th scope="col">Estimated Useful Life</th>
+                    <th class="text-primary" scope="col">User Name</th>
+                    <th scope="col">Position/Office</th>
+                    <th class="text-primary" scope="col">Date Received(by User)</th>
+                    <th scope="col">Property Custodian</th>
+                    <th class="text-primary" scope="col">Position/Office</th>
+                    <th scope="col">Date Received(by Custodian)</th>
+                    <!-- <th scope="col">Actions</th> -->
                   </tr>
                 </thead>
                 <tbody>
                   <?php
                   try {
                     $ret = "SELECT ics.*, ent.entity_name, ent.fund_cluster, ici.quantity, 
-                              i.item_description, i.unit, i.unit_cost, (ici.quantity * i.unit_cost) as total_amount
+                              i.item_description, i.unit, i.unit_cost, (ici.quantity * i.unit_cost) as total_amount,
+                              ici.ics_item_id, ici.inventory_item_no, i.estimated_useful_life
                               FROM inventory_custodian_slips ics
                               LEFT JOIN entities ent ON ics.entity_id = ent.entity_id
                               LEFT JOIN ics_items ici ON ics.ics_id = ici.ics_id
@@ -246,28 +438,46 @@ function getCount($mysqli, $table)
                     while ($ics = $res->fetch_object()) {
                   ?>
                       <tr>
-                        <td><?php echo isset($ics->entity_name) ? htmlspecialchars($ics->entity_name) : 'N/A'; ?></td>
+                        <td class="text-primary"><?php echo isset($ics->entity_name) ? htmlspecialchars($ics->entity_name) : 'N/A'; ?></td>
                         <td><?php echo isset($ics->fund_cluster) ? htmlspecialchars($ics->fund_cluster) : 'N/A'; ?></td>
-                        <td><?php echo htmlspecialchars($ics->ics_no); ?></td>
+                        <td class="text-primary"><?php echo htmlspecialchars($ics->ics_no); ?></td>
                         <td><?php echo isset($ics->quantity) ? number_format($ics->quantity) : '0'; ?></td>
-                        <td><?php echo isset($ics->unit) ? htmlspecialchars($ics->unit) : 'N/A'; ?></td>
+                        <td class="text-primary"><?php echo isset($ics->unit) ? htmlspecialchars($ics->unit) : 'N/A'; ?></td>
                         <td>₱<?php echo isset($ics->unit_cost) ? number_format($ics->unit_cost, 2) : '0.00'; ?></td>
-                        <td>₱<?php echo isset($ics->total_amount) ? number_format($ics->total_amount, 2) : '0.00'; ?></td>
+                        <td class="text-primary">₱<?php echo isset($ics->total_amount) ? number_format($ics->total_amount, 2) : '0.00'; ?></td>
                         <td><?php echo isset($ics->item_description) ? htmlspecialchars($ics->item_description) : 'N/A'; ?></td>
-                        <td>
-                           <a href="display_ics.php?delete=<?php echo $ics->ics_id; ?>">
-                          <button class="btn btn-sm btn-danger">
-                            <i class="fas fa-trash"></i>
-                            Delete
-                          </button>
-                        </a>
-                        <a href="ics_update.php?update=<?php echo $ics->ics_id; ?>">
-                          <button class="btn btn-sm btn-primary">
-                            <i class="fas fa-user-edit"></i>
-                            Update
-                          </button>
-                        </a>
-                        </td>
+                        <td class="text-primary"><?php echo htmlspecialchars($ics->inventory_item_no); ?></td>
+                        <td><?php echo htmlspecialchars($ics->estimated_useful_life); ?></td>
+                        <td class="text-primary"><?php echo htmlspecialchars($ics->end_user_name); ?></td>
+                        <td><?php echo htmlspecialchars($ics->end_user_position); ?></td>
+                        <td class="text-primary"><?php echo date('M d, Y', strtotime($ics->end_user_date)); ?></td>
+                        <td><?php echo htmlspecialchars($ics->custodian_name); ?></td>
+                        <td class="text-primary"><?php echo htmlspecialchars($ics->custodian_position); ?></td>
+                        <td><?php echo date('M d, Y', strtotime($ics->custodian_date)); ?></td>
+                        <!-- <td>
+                          <a href="dashboard.php?delete=<?php echo $ics->ics_id; ?>&type=ics"
+                           onclick="return confirm('Are you sure you want to delete this record?')">
+                            <button class="btn btn-sm btn-danger">
+                              <i class="fas fa-trash"></i>
+                              Delete
+                            </button>
+                          </a>
+                          <?php if (isset($ics->ics_item_id)): ?>
+                          <a href="dashboard.php?delete_item=<?php echo $ics->ics_item_id; ?>&type=ics"
+                            onclick="return confirm('Are you sure you want to delete this item?')">
+                            <button class="btn btn-sm btn-danger">
+                              <i class="fas fa-trash-alt"></i>
+                              Delete  
+                            </button>
+                          </a>
+                          <?php endif; ?>
+                          <a href="ics_update.php?update=<?php echo $ics->ics_id; ?>">
+                            <button class="btn btn-sm btn-primary">
+                              <i class="fas fa-user-edit"></i>
+                              Update
+                            </button>
+                          </a>
+                        </td> -->
                       </tr>
                   <?php
                     }

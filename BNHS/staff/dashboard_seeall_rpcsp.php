@@ -31,8 +31,8 @@ require_once('partials/_head.php');
       <div class="row">
         <div class="col">
           <div class="card shadow">
-            <div class="card-header border-0">
-              REPORT ON THE PHYSICAL COUNT OF SEMI- EXPENDABLE PROPERTY
+            <div class="card-header border-0" style="text-align: center; padding: 30px;">
+            <strong>REPORT ON THE PHYSICAL COUNT OF SEMI- EXPENDABLE PROPERTY</strong>  
             </div>
             <div class="table-responsive">
               <table class="table align-items-center table-flush">
