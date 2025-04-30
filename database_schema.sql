@@ -31,45 +31,45 @@ CREATE TABLE items (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Create inspection_acceptance_reports table
-CREATE TABLE inspection_acceptance_reports (
-    iar_id INT PRIMARY KEY AUTO_INCREMENT,
-    entity_id INT NOT NULL,
-    supplier_id INT NOT NULL,
-    iar_no VARCHAR(50) NOT NULL UNIQUE,
-    po_no_date VARCHAR(100),
-    req_office VARCHAR(100),
-    responsibility_center VARCHAR(100),
-    iar_date DATE NOT NULL,
-    invoice_no_date VARCHAR(100),
-    remarks TEXT,
-    receiver_name VARCHAR(100) NOT NULL,
-    teacher_id VARCHAR(50),
-    position VARCHAR(100),
-    date_inspected DATE,
-    inspectors TEXT,
-    barangay_councilor VARCHAR(100),
-    pta_observer VARCHAR(100),
-    date_received DATE,
-    property_custodian VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (entity_id) REFERENCES entities(entity_id),
-    FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id)
-);
+    -- Create inspection_acceptance_reports table
+    CREATE TABLE inspection_acceptance_reports (
+        iar_id INT PRIMARY KEY AUTO_INCREMENT,
+        entity_id INT NOT NULL,
+        supplier_id INT NOT NULL,
+        iar_no VARCHAR(50) NOT NULL UNIQUE,
+        po_no_date VARCHAR(100),
+        req_office VARCHAR(100),
+        responsibility_center VARCHAR(100),
+        iar_date DATE NOT NULL,
+        invoice_no_date VARCHAR(100),
+        receiver_name VARCHAR(100) NOT NULL,
+        teacher_id VARCHAR(50),
+        position VARCHAR(100),
+        date_inspected DATE,
+        inspectors TEXT,
+        barangay_councilor VARCHAR(100),
+        pta_observer VARCHAR(100),
+        date_received DATE,
+        property_custodian VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (entity_id) REFERENCES entities(entity_id),
+        FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id)
+    );
 
--- Create iar_items table (for items in IAR)
-CREATE TABLE iar_items (
-    iar_item_id INT PRIMARY KEY AUTO_INCREMENT,
-    iar_id INT NOT NULL,
-    item_id INT NOT NULL,
-    quantity INT NOT NULL,
-    unit_price DECIMAL(10,2) NOT NULL,
-    total_price DECIMAL(10,2) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (iar_id) REFERENCES inspection_acceptance_reports(iar_id),
-    FOREIGN KEY (item_id) REFERENCES items(item_id)
-);
+    -- Create iar_items table (for items in IAR)
+    CREATE TABLE iar_items (
+        iar_item_id INT PRIMARY KEY AUTO_INCREMENT,
+        iar_id INT NOT NULL,
+        item_id INT NOT NULL,
+        quantity INT NOT NULL,
+        unit_price DECIMAL(10,2) NOT NULL,
+        remarks TEXT,
+        total_price DECIMAL(10,2) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (iar_id) REFERENCES inspection_acceptance_reports(iar_id),
+        FOREIGN KEY (item_id) REFERENCES items(item_id)
+    );
 
 -- Create property_acknowledgment_receipts table
 CREATE TABLE property_acknowledgment_receipts (

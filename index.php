@@ -168,7 +168,7 @@
                 </div>
             </div>
             <div class="buttons">
-                <a href="BNHS/admins/" class="admin">Admin Log In</a>
+                <a href="BNHS/admin/" class="admin">Admin Log In</a>
                 <a href="BNHS/staff/" class="cashier">Staff Log In</a>
                 <!-- <a href="Main/customer/" class="customer">Customer Log In</a> -->
             </div>

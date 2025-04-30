@@ -41,7 +41,7 @@ switch($source_table) {
 // Modified query with JOIN to entities table where applicable
 if ($source_table == 'inspection_acceptance_reports') {
     $query = "SELECT t.*, e.entity_name, e.fund_cluster,
-              i.item_id, i.quantity, i.unit_price, i.total_price,
+              i.item_id, i.quantity, i.unit_price, i.total_price, i.remarks,
               itm.item_description, itm.unit, itm.unit_cost, itm.stock_no,
               s.supplier_name, s.contact_info
               FROM `$source_table` t 
@@ -92,6 +92,20 @@ $item = $result->fetch_assoc();
 
 if (!$item) {
     die("Record not found.");
+}
+
+// Calculate total amounts for each form type
+if ($source_table === 'inspection_acceptance_reports' && isset($item['quantity']) && isset($item['unit_price'])) {
+    $item['total_price'] = $item['quantity'] * $item['unit_price'];
+} 
+else if ($source_table === 'inventory_custodian_slips' && isset($item['quantity']) && isset($item['unit_cost'])) {
+    $item['total_amount'] = $item['quantity'] * $item['unit_cost'];
+}
+else if ($source_table === 'property_acknowledgment_receipts' && isset($item['quantity']) && isset($item['unit_cost'])) {
+    $item['total_amount'] = $item['quantity'] * $item['unit_cost'];
+}
+else if ($source_table === 'requisition_and_issue_slips' && isset($item['requested_qty']) && isset($item['unit_cost'])) {
+    $item['total_cost'] = $item['requested_qty'] * $item['unit_cost'];
 }
 
 if ($_SERVER['REQUEST_METHOD'] === "POST") {
