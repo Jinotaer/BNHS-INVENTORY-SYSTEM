@@ -418,67 +418,67 @@ require_once('partials/_head.php');
                     
                     <div class="col-md-4">
                       <label class="form-label">Responsibility Center</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="responsibility_center" value="<?php echo $responsibility_center; ?>">
+                      <input style="color: #000000;" type="text" class="form-control" name="responsibility_center" value="<?php echo $responsibility_center; ?>" required>
                     </div>
                   </div>
 
                   <div class="row mb-3">
                     <div class="col-md-4">
                       <label class="form-label">IAR No.</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="iar_no" value="<?php echo $iar_no; ?>">
+                      <input style="color: #000000;" type="text" class="form-control" name="iar_no" value="<?php echo $iar_no; ?>" required>
                     </div>
                     <div class="col-md-4">
                       <label class="form-label">IAR Date</label>
-                      <input style="color: #000000;" type="date" class="form-control" name="iar_date" value="<?php echo $iar_date; ?>">
+                      <input style="color: #000000;" type="date" class="form-control" name="iar_date" value="<?php echo $iar_date; ?>" required>
                     </div>
                     <div class="col-md-4">
                       <label class="form-label">Invoice No. / Date</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="invoice_no_date" value="<?php echo $invoice_no_date; ?>">
+                      <input style="color: #000000;" type="text" class="form-control" name="invoice_no_date" value="<?php echo $invoice_no_date; ?>" required>
                     </div>
                   </div>
 
                   <div class="row mb-3">
                     <div class="col-md-4">
                       <label class="form-label">Receiver Name</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="receiver_name" value="<?php echo $receiver_name; ?>">
+                      <input style="color: #000000;" type="text" class="form-control" name="receiver_name" value="<?php echo $receiver_name; ?>" required>
                     </div>
                     <div class="col-md-4">
                       <label class="form-label">Teacher's ID</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="teacher_id" value="<?php echo $teacher_id; ?>">
+                      <input style="color: #000000;" type="text" class="form-control" name="teacher_id" value="<?php echo $teacher_id; ?>" required>
                     </div>
                     <div class="col-md-4">
                       <label class="form-label">Position</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="position" value="<?php echo $position; ?>">
+                      <input style="color: #000000;" type="text" class="form-control" name="position" value="<?php echo $position; ?>" required>
                     </div>
                   </div>
 
                   <div class="row mb-3">
                     <div class="col-md-4">
                       <label class="form-label">Date Inspected</label>
-                      <input style="color: #000000;" type="date" class="form-control" name="date_inspected" value="<?php echo $date_inspected; ?>">
+                      <input style="color: #000000;" type="date" class="form-control" name="date_inspected" value="<?php echo $date_inspected; ?>" required>
                     </div>
                     <div class="col-md-5">
                       <label class="form-label">Inspection Team (comma separated)</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="inspectors" placeholder="e.g., Joan Savage, Nelson British, Bles Sings" value="<?php echo $inspectors; ?>">
+                      <input style="color: #000000;" type="text" class="form-control" name="inspectors" placeholder="e.g., Joan Savage, Nelson British, Bles Sings" value="<?php echo $inspectors; ?>" required>
                     </div>
                     <div class="col-md-3">
                       <label class="form-label">Barangay Councilor</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="barangay_councilor" value="<?php echo $barangay_councilor; ?>">
+                      <input style="color: #000000;" type="text" class="form-control" name="barangay_councilor" value="<?php echo $barangay_councilor; ?>" required>
                     </div>
                   </div>
 
                   <div class="row mb-3">
                     <div class="col-md-4">
                       <label class="form-label">PTA Observer</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="pta_observer" value="<?php echo $pta_observer; ?>">
+                      <input style="color: #000000;" type="text" class="form-control" name="pta_observer" value="<?php echo $pta_observer; ?>" required>
                     </div>
                     <div class="col-md-4">
                       <label class="form-label">Date Received</label>
-                      <input style="color: #000000;" type="date" class="form-control" name="date_received" value="<?php echo $date_received; ?>">
+                      <input style="color: #000000;" type="date" class="form-control" name="date_received" value="<?php echo $date_received; ?>" required>
                     </div>
                     <div class="col-md-4">
                       <label class="form-label">Property Custodian</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="property_custodian" value="<?php echo $property_custodian; ?>">
+                      <input style="color: #000000;" type="text" class="form-control" name="property_custodian" value="<?php echo $property_custodian; ?>" required>
                     </div>
                   </div>
                   <div class="form-section" style="margin-top: 20px; border: 1px solid #dee2e6; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
@@ -499,20 +499,22 @@ require_once('partials/_head.php');
                       <tbody id="itemsTableBody">
                         <?php for ($i = 0; $i < count($item_descriptions); $i++): ?>
                         <tr>
-                          <td><input type="text" name="stock_no[]" class="underline-input" value="<?php echo isset($stock_nos[$i]) ? htmlspecialchars($stock_nos[$i]) : ''; ?>"></td>
-                          <td><input type="text" name="item_description[]" class="underline-input<?php if(isset($errors['item_description'])) echo ' is-invalid'; ?>" value="<?php echo isset($item_descriptions[$i]) ? htmlspecialchars($item_descriptions[$i]) : ''; ?>"></td>
+                          <td><input type="text" name="stock_no[]" class="underline-input" value="<?php echo isset($stock_nos[$i]) ? htmlspecialchars($stock_nos[$i]) : ''; ?>" required></td>
+                          <td><input type="text" name="item_description[]" class="underline-input<?php if(isset($errors['item_description'])) echo ' is-invalid'; ?>" value="<?php echo isset($item_descriptions[$i]) ? htmlspecialchars($item_descriptions[$i]) : ''; ?>" required></td>
                           <td>
-                            <select name="unit[]" class="underline-input">
+                            <select name="unit[]" class="underline-input" required>
                               <option value="">Select Unit</option>
                               <option value="box" <?php if(isset($units[$i]) && $units[$i] == 'box') echo 'selected'; ?>>box</option>
+                              <option value="pieces" <?php if(isset($units[$i]) && $units[$i] == 'pack') echo 'selected'; ?>>pack</option>
                               <option value="pieces" <?php if(isset($units[$i]) && $units[$i] == 'pieces') echo 'selected'; ?>>pieces</option>
+                              <option value="pieces" <?php if(isset($units[$i]) && $units[$i] == 'set') echo 'selected'; ?>>set</option>
                             </select>
                           </td>
-                          <td><input type="number" name="quantity[]" class="underline-input" min="1" oninput="calculateRowTotal(this.parentNode.nextElementSibling.querySelector('input'))" value="<?php echo isset($quantities[$i]) ? htmlspecialchars($quantities[$i]) : ''; ?>"></td>
-                          <td><input type="number" name="unit_price[]" class="underline-input" min="0" step="0.01" oninput="calculateRowTotal(this)" value="<?php echo isset($unit_prices[$i]) ? htmlspecialchars($unit_prices[$i]) : ''; ?>"></td>
+                          <td><input type="number" name="quantity[]" class="underline-input" min="1" oninput="calculateRowTotal(this.parentNode.nextElementSibling.querySelector('input'))" value="<?php echo isset($quantities[$i]) ? htmlspecialchars($quantities[$i]) : ''; ?>" required></td>
+                          <td><input type="number" name="unit_price[]" class="underline-input" min="0" step="0.01" oninput="calculateRowTotal(this)" value="<?php echo isset($unit_prices[$i]) ? htmlspecialchars($unit_prices[$i]) : ''; ?>" required></td>
                           <td><input type="number" name="total_price[]" class="underline-input" min="0" step="0.01" readonly value="<?php echo (isset($quantities[$i]) && isset($unit_prices[$i])) ? htmlspecialchars((float)$quantities[$i] * (float)$unit_prices[$i]) : ''; ?>"></td>
                           <td>
-                            <select name="remarks[]" class="underline-input">
+                            <select name="remarks[]" class="underline-input" required>
                               <option value="">Select Remarks</option>
                               <option value="Consumable" <?php if(isset($remarks_array[$i]) && $remarks_array[$i] == 'Consumable') echo 'selected'; ?>>Consumable</option>
                               <option value="Non-Consumable" <?php if(isset($remarks_array[$i]) && $remarks_array[$i] == 'Non-Consumable') echo 'selected'; ?>>Non-Consumable</option>
@@ -584,20 +586,20 @@ require_once('partials/_head.php');
       const tbody = document.getElementById('itemsTableBody');
       const newRow = document.createElement('tr');
       newRow.innerHTML = `
-        <td><input type="text" name="stock_no[]" class="underline-input"></td>
-        <td><input type="text" name="item_description[]" class="underline-input"></td>
+        <td><input type="text" name="stock_no[]" class="underline-input" required></td>
+        <td><input type="text" name="item_description[]" class="underline-input" required></td>
         <td>
-          <select name="unit[]" class="underline-input">
+          <select name="unit[]" class="underline-input" required>
             <option value="">Select Unit</option>
             <option value="box">box</option>
             <option value="pieces">pieces</option>
           </select>
         </td>
-        <td><input type="number" name="quantity[]" class="underline-input" min="1"></td>
-        <td><input type="number" name="unit_price[]" class="underline-input" min="0" step="0.01"></td>
+        <td><input type="number" name="quantity[]" class="underline-input" min="1" required></td>
+        <td><input type="number" name="unit_price[]" class="underline-input" min="0" step="0.01" required></td>
         <td><input type="number" name="total_price[]" class="underline-input" min="0" step="0.01" readonly></td>
         <td>
-          <select name="remarks[]" class="underline-input">
+          <select name="remarks[]" class="underline-input" required>
             <option value="">Select Remarks</option>
             <option value="Consumable">Consumable</option>
             <option value="Non-Consumable">Non-Consumable</option>

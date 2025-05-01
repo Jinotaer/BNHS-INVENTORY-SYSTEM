@@ -285,35 +285,31 @@ if (isset($_GET['delete_item']) && !isset($_GET['type'])) {
               <table id="parTable" class="table align-items-center table-flush">
                 <thead class="thead-light">
                   <tr>
-                    <th class="text-primary" scope="col">Entity Name</th>
-                    <th scope="col">Fund Cluster</th>
-                    <th class="text-primary" scope="col">PAR No.</th>
-                    <th scope="col">Quantity</th>
-                    <th class="text-primary" scope="col">Unit</th>
+                    <th class="text-primary" scope="col">Article</th>
                     <th scope="col">Item Description</th>
-                    <th class="text-primary" scope="col">Property Number</th>
-                    <th scope="col">Data Acquired</th>
-                    <th class="text-primary" scope="col">Unit Cost</th>
-                    <th scope="col">Total Cost</th>1
-                    <th class="text-primary" scope="col">User Name</th>
-                    <th scope="col">Position/Office</th>
-                    <th class="text-primary" scope="col">Date</th>
-                    <th scope="col">Property Custodian Name</th>
-                    <th class="text-primary" scope="col">Position/Office</th>
-                    <th scope="col">Date</th>
+                    <th class="text-primary" scope="col">Property No.</th>
+                    <th scope="col">Unit</th>
+                    <th class="text-primary" scope="col">Unit Value</th>
+                    <th scope="col">Quantity</th>
+                    <th class="text-primary" scope="col">Total Amount</th>
+                    <th scope="col">Date Acquired</th>
+                    <th class="text-primary" scope="col">Remarks</th>
                     <!-- <th scope="col">Actions</th> -->
                   </tr>
                 </thead>
                 <tbody>
                   <?php
                   try {
-                    $ret = "SELECT par.*, ent.entity_name, ent.fund_cluster, pi.quantity, pi.property_number, 
-                              i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount,
-                              pi.par_item_id
-                              FROM property_acknowledgment_receipts par
-                              LEFT JOIN entities ent ON par.entity_id = ent.entity_id
-                              LEFT JOIN par_items pi ON par.par_id = pi.par_id
-                              LEFT JOIN items i ON pi.item_id = i.item_id
+                    $ret = "SELECT par.par_id as id, par.par_no, par.end_user_name, par.receiver_position, 
+                    par.receiver_date, par.date_acquired,
+                    i.item_description, i.unit_cost, i.unit,
+                    e.entity_name, e.fund_cluster as entity_fund_cluster,
+                    pi.quantity, pi.property_number, pi.remarks, pi.article,
+                    (pi.quantity * i.unit_cost) as total_amount
+                    FROM property_acknowledgment_receipts par
+                    LEFT JOIN par_items pi ON par.par_id = pi.par_id
+                    LEFT JOIN items i ON pi.item_id = i.item_id
+                    LEFT JOIN entities e ON par.entity_id = e.entity_id
                               ORDER BY par.created_at DESC LIMIT 10";
                     $stmt = $mysqli->prepare($ret);
                     if (!$stmt) {
@@ -324,22 +320,15 @@ if (isset($_GET['delete_item']) && !isset($_GET['type'])) {
                     while ($par = $res->fetch_object()) {
                   ?>
                       <tr>
-                        <td class="text-primary"><?php echo isset($par->entity_name) ? htmlspecialchars($par->entity_name) : 'N/A'; ?></td>
-                        <td><?php echo isset($par->fund_cluster) ? htmlspecialchars($par->fund_cluster) : 'N/A'; ?></td>
-                        <td class="text-primary"><?php echo htmlspecialchars($par->par_no); ?></td>
-                        <td><?php echo isset($par->quantity) ? number_format($par->quantity) : '0'; ?></td>
-                        <td class="text-primary"><?php echo isset($par->unit) ? htmlspecialchars($par->unit) : 'N/A'; ?></td>
-                        <td><?php echo isset($par->item_description) ? htmlspecialchars($par->item_description) : 'N/A'; ?></td>
-                        <td class="text-primary"><?php echo isset($par->property_number) ? htmlspecialchars($par->property_number) : 'N/A'; ?></td>
-                        <td><?php echo date('M d, Y', strtotime($par->date_acquired)); ?></td>
-                        <td class="text-primary">₱<?php echo isset($par->unit_cost) ? number_format($par->unit_cost, 2) : '0.00'; ?></td>
-                        <td>₱<?php echo isset($par->total_amount) ? number_format($par->total_amount, 2) : '0.00'; ?></td>
-                        <td class="text-primary"><?php echo $par->end_user_name; ?></td>
-                        <td ><?php echo $par->receiver_position; ?></td>
-                        <td class="text-primary"><?php echo $par->receiver_date; ?></td>
-                        <td><?php echo $par->custodian_name; ?></td>
-                        <td class="text-primary"><?php echo $par->custodian_position; ?></td>
-                        <td><?php echo date('M d, Y', strtotime($par->custodian_date)); ?></td>
+                        <td class="text-primary"><?php echo isset($par->article) ? $par->article : ''; ?></td>
+                        <td><?php echo isset($par->item_description) ? $par->item_description : ''; ?></td>
+                        <td class="text-primary"><?php echo isset($par->property_number) ? $par->property_number : ''; ?></td>
+                        <td><?php echo isset($par->unit) ? $par->unit : ''; ?></td>
+                        <td class="text-primary"><?php echo isset($par->unit_cost) ? $par->unit_cost : ''; ?></td>
+                        <td><?php echo isset($par->quantity) ? $par->quantity : ''; ?></td>
+                        <td class="text-primary"><?php echo isset($par->total_amount) ? $par->total_amount : ''; ?></td>
+                        <td><?php echo isset($par->date_acquired) ? $par->date_acquired : ''; ?></td>
+                        <td class="text-primary"><?php echo isset($par->remarks) ? $par->remarks : ''; ?></td>
                         <!-- <td>
                           <a href="dashboard.php?delete=<?php echo $par->par_id; ?>&type=par"
                             onclick="return confirm('Are you sure you want to delete this record?')">
@@ -398,36 +387,32 @@ if (isset($_GET['delete_item']) && !isset($_GET['type'])) {
               <table class="table align-items-center table-flush">
                 <thead class="thead-light">
                   <tr>
-                    <th class="text-primary" scope="col">Entity Name</th>
-                    <th scope="col">Fund Cluster</th>
-                    <th class="text-primary" scope="col">ICS No.</th>
-                    <th scope="col">Quantity</th>
-                    <th class="text-primary" scope="col">Unit</th>
-                    <th scope="col">Unit Cost</th>
-                    <th class="text-primary" scope="col">Total Amount</th>
+                    <th class="text-primary" scope="col">Article</th>
                     <th scope="col">Item Description</th>
                     <th class="text-primary" scope="col">Inventory Item No.</th>
+                    <th scope="col">Unit</th>
+                    <th class="text-primary" scope="col">Unit Value</th>
+                    <th scope="col">Quantity</th>
+                    <th class="text-primary" scope="col">Total Amount</th>
                     <th scope="col">Estimated Useful Life</th>
-                    <th class="text-primary" scope="col">User Name</th>
-                    <th scope="col">Position/Office</th>
-                    <th class="text-primary" scope="col">Date Received(by User)</th>
-                    <th scope="col">Property Custodian</th>
-                    <th class="text-primary" scope="col">Position/Office</th>
-                    <th scope="col">Date Received(by Custodian)</th>
+                    <th class="text-primary" scope="col">Remarks</th>
                     <!-- <th scope="col">Actions</th> -->
                   </tr>
                 </thead>
                 <tbody>
                   <?php
                   try {
-                    $ret = "SELECT ics.*, ent.entity_name, ent.fund_cluster, ici.quantity, 
-                              i.item_description, i.unit, i.unit_cost, (ici.quantity * i.unit_cost) as total_amount,
-                              ici.ics_item_id, ici.inventory_item_no, i.estimated_useful_life
-                              FROM inventory_custodian_slips ics
-                              LEFT JOIN entities ent ON ics.entity_id = ent.entity_id
-                              LEFT JOIN ics_items ici ON ics.ics_id = ici.ics_id
-                              LEFT JOIN items i ON ici.item_id = i.item_id
-                              WHERE i.item_id NOT IN (SELECT item_id FROM iar_items)
+                    $ret = "SELECT ics.ics_id as id, ics.ics_no, ics.end_user_name, ics.end_user_position, 
+                    ics.end_user_date as date_received_user, ics.custodian_name, ics.custodian_position, 
+                    ics.custodian_date as date_received_custodian, ics.created_at,
+                    i.item_description, i.unit_cost, i.unit, i.estimated_useful_life as estimated_life,
+                    e.entity_name, e.fund_cluster as entity_fund_cluster,
+                    ii.quantity, ii.inventory_item_no, ii.remarks, ii.article,
+                    (ii.quantity * i.unit_cost) as total_amount
+                    FROM inventory_custodian_slips ics
+                    LEFT JOIN ics_items ii ON ics.ics_id = ii.ics_id
+                    LEFT JOIN items i ON ii.item_id = i.item_id
+                    LEFT JOIN entities e ON ics.entity_id = e.entity_id
                               ORDER BY ics.created_at DESC LIMIT 10";
                     $stmt = $mysqli->prepare($ret);
                     if (!$stmt) {
@@ -438,22 +423,15 @@ if (isset($_GET['delete_item']) && !isset($_GET['type'])) {
                     while ($ics = $res->fetch_object()) {
                   ?>
                       <tr>
-                        <td class="text-primary"><?php echo isset($ics->entity_name) ? htmlspecialchars($ics->entity_name) : 'N/A'; ?></td>
-                        <td><?php echo isset($ics->fund_cluster) ? htmlspecialchars($ics->fund_cluster) : 'N/A'; ?></td>
-                        <td class="text-primary"><?php echo htmlspecialchars($ics->ics_no); ?></td>
-                        <td><?php echo isset($ics->quantity) ? number_format($ics->quantity) : '0'; ?></td>
-                        <td class="text-primary"><?php echo isset($ics->unit) ? htmlspecialchars($ics->unit) : 'N/A'; ?></td>
-                        <td>₱<?php echo isset($ics->unit_cost) ? number_format($ics->unit_cost, 2) : '0.00'; ?></td>
-                        <td class="text-primary">₱<?php echo isset($ics->total_amount) ? number_format($ics->total_amount, 2) : '0.00'; ?></td>
-                        <td><?php echo isset($ics->item_description) ? htmlspecialchars($ics->item_description) : 'N/A'; ?></td>
-                        <td class="text-primary"><?php echo htmlspecialchars($ics->inventory_item_no); ?></td>
-                        <td><?php echo htmlspecialchars($ics->estimated_useful_life); ?></td>
-                        <td class="text-primary"><?php echo htmlspecialchars($ics->end_user_name); ?></td>
-                        <td><?php echo htmlspecialchars($ics->end_user_position); ?></td>
-                        <td class="text-primary"><?php echo date('M d, Y', strtotime($ics->end_user_date)); ?></td>
-                        <td><?php echo htmlspecialchars($ics->custodian_name); ?></td>
-                        <td class="text-primary"><?php echo htmlspecialchars($ics->custodian_position); ?></td>
-                        <td><?php echo date('M d, Y', strtotime($ics->custodian_date)); ?></td>
+                        <td class="text-primary"><?php echo isset($ics->article) ? $ics->article : ''; ?></td>
+                        <td><?php echo isset($ics->item_description) ? $ics->item_description : ''; ?></td>
+                        <td class="text-primary"><?php echo isset($ics->inventory_item_no) ? $ics->inventory_item_no : ''; ?></td>
+                        <td><?php echo isset($ics->unit) ? $ics->unit : ''; ?></td>
+                        <td class="text-primary"><?php echo isset($ics->unit_cost) ? $ics->unit_cost : ''; ?></td>
+                        <td><?php echo isset($ics->quantity) ? $ics->quantity : ''; ?></td>
+                        <td class="text-primary"><?php echo isset($ics->total_amount) ? $ics->total_amount : ''; ?></td>
+                        <td><?php echo isset($ics->estimated_life) ? $ics->estimated_life : ''; ?></td>
+                        <td class="text-primary"><?php echo isset($ics->remarks) ? $ics->remarks : ''; ?></td>
                         <!-- <td>
                           <a href="dashboard.php?delete=<?php echo $ics->ics_id; ?>&type=ics"
                            onclick="return confirm('Are you sure you want to delete this record?')">

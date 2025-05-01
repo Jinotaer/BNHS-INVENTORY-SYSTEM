@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
       }
 
       $stmt->bind_param(
-        "issssss",
+        "issssssi",
         $entity_id,
         $end_user_name,
         $end_user_position,
@@ -495,7 +495,7 @@ require_once('partials/_head.php');
                   <?php endforeach; ?>
                   
                   <div class="text-end mt-3">
-                    <button type="submit" class="btn btn-primary">Update All Items</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
                   </div>
                 </div>
               </form>

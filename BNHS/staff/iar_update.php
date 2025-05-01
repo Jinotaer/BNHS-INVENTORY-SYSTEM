@@ -6,7 +6,8 @@ check_login();
 
 if ($_SERVER['REQUEST_METHOD'] == "POST") {
   // Sanitize and collect form data
-  function sanitize($data) {
+  function sanitize($data)
+  {
     return htmlspecialchars(trim($data));
   }
 
@@ -28,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
   $total_price = isset($_POST['total_price']) ? (is_array($_POST['total_price']) ? $_POST['total_price'] : array($_POST['total_price'])) : array();
   $item_id = isset($_POST['item_id']) ? (is_array($_POST['item_id']) ? $_POST['item_id'] : array($_POST['item_id'])) : array();
   $iar_item_id = isset($_POST['iar_item_id']) ? (is_array($_POST['iar_item_id']) ? $_POST['iar_item_id'] : array($_POST['iar_item_id'])) : array();
-  
+
   $receiver_name = sanitize($_POST['receiver_name']);
   $teacher_id = sanitize($_POST['teacher_id']);
   $position = sanitize($_POST['position']);
@@ -38,21 +39,21 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
   $pta_observer = sanitize($_POST['pta_observer']);
   $date_received = sanitize($_POST['date_received']);
   $property_custodian = sanitize($_POST['property_custodian']);
-  
+
   // Check if we're updating an IAR
   if (isset($_GET['update'])) {
     $update = $_GET['update'];
-    
+
     // Start transaction
     $mysqli->begin_transaction();
-    
+
     try {
       // First, get or create entity
       $stmt = $mysqli->prepare("SELECT entity_id FROM entities WHERE entity_name = ? AND fund_cluster = ?");
       $stmt->bind_param("ss", $entity_name, $fund_cluster);
       $stmt->execute();
       $result = $stmt->get_result();
-      
+
       if ($result->num_rows > 0) {
         $entity_id = $result->fetch_object()->entity_id;
       } else {
@@ -67,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
       $stmt->bind_param("s", $supplier_name);
       $stmt->execute();
       $result = $stmt->get_result();
-      
+
       if ($result->num_rows > 0) {
         $supplier_id = $result->fetch_object()->supplier_id;
       } else {
@@ -88,22 +89,22 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
 
       $stmt->bind_param(
         "iisssssssssssssssi",
-        $entity_id, 
-        $supplier_id, 
-        $iar_no, 
-        $po_no_date, 
-        $req_office, 
-        $responsibility_center, 
-        $iar_date, 
-        $invoice_no_date, 
-        $receiver_name, 
-        $teacher_id, 
-        $position, 
-        $date_inspected, 
-        $inspectors, 
-        $barangay_councilor, 
-        $pta_observer, 
-        $date_received, 
+        $entity_id,
+        $supplier_id,
+        $iar_no,
+        $po_no_date,
+        $req_office,
+        $responsibility_center,
+        $iar_date,
+        $invoice_no_date,
+        $receiver_name,
+        $teacher_id,
+        $position,
+        $date_inspected,
+        $inspectors,
+        $barangay_councilor,
+        $pta_observer,
+        $date_received,
         $property_custodian,
         $update
       );
@@ -118,14 +119,14 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
         $qty = (int)$quantity[$i];
         $price = (float)$unit_price[$i];
         $total = $qty * $price;
-        
+
         // Update items table
         $stmt = $mysqli->prepare("UPDATE items SET 
           stock_no = ?, item_description = ?, unit = ?, unit_cost = ?
           WHERE item_id = ?");
 
         $stmt->bind_param("sssdi", $stock_no[$i], $item_description[$i], $unit[$i], $unit_price[$i], $item_id[$i]);
-        
+
         if (!$stmt->execute()) {
           throw new Exception("Error updating item: " . $stmt->error);
         }
@@ -136,7 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
           WHERE iar_item_id = ?");
 
         $stmt->bind_param("iddsi", $qty, $price, $total, $remarks[$i], $iar_item_id[$i]);
-        
+
         if (!$stmt->execute()) {
           throw new Exception("Error updating IAR items: " . $stmt->error);
         }
@@ -145,12 +146,12 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
       // Commit transaction
       $mysqli->commit();
       $success = "Inspection and Acceptance Report Updated Successfully";
-      header("refresh:1; url=display_iar copy.php");
+      header("refresh:1; url=display_iar.php");
     } catch (Exception $e) {
       // Rollback transaction on error
       $mysqli->rollback();
       $err = "Error: " . $e->getMessage();
-      header("refresh:1; url=display_iar copy.php");
+      header("refresh:1; url=display_iar.php");
     }
   }
 }
@@ -161,16 +162,16 @@ require_once('partials/_head.php');
 <body>
   <!-- Sidenav -->
   <?php require_once('partials/_sidebar.php'); ?>
-  
+
   <!-- Main content -->
   <div class="main-content">
     <!-- Top navbar -->
     <?php require_once('partials/_topnav.php'); ?>
-    
+
     <?php
     if (isset($_GET['update'])) {
       $update = $_GET['update'];
-      
+
       // First get the basic IAR info
       $iar_query = "SELECT 
         iar.*, 
@@ -181,13 +182,13 @@ require_once('partials/_head.php');
       JOIN entities e ON iar.entity_id = e.entity_id
       JOIN suppliers s ON iar.supplier_id = s.supplier_id
       WHERE iar.iar_id = ?";
-      
+
       $stmt = $mysqli->prepare($iar_query);
       $stmt->bind_param("i", $update);
       $stmt->execute();
       $iar_result = $stmt->get_result();
       $iar_info = $iar_result->fetch_object();
-      
+
       // Then get all items for this IAR
       $items_query = "SELECT 
         i.item_id,
@@ -203,7 +204,7 @@ require_once('partials/_head.php');
       FROM iar_items ii
       JOIN items i ON ii.item_id = i.item_id
       WHERE ii.iar_id = ?";
-      
+
       $stmt = $mysqli->prepare($items_query);
       $stmt->bind_param("i", $update);
       $stmt->execute();
@@ -211,23 +212,23 @@ require_once('partials/_head.php');
       $iar_items = $items_result->fetch_all(MYSQLI_ASSOC);
     }
     ?>
-    
+
     <!-- Header -->
     <div style="background-image: url(assets/img/theme/bnhsfront.jpg); background-size: cover;" class="header pb-8 pt-5 pt-md-8">
       <span class="mask bg-gradient-dark opacity-8"></span>
     </div>
-    
+
     <!-- Page content -->
     <div class="container-fluid mt--8">
       <div class="row">
         <div class="col">
           <div class="card shadow">
             <div class="card-body">
-             
+
               <form method="POST" action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>" class="border border-light p-4 rounded">
                 <div class="container mt-4">
                   <h2 class="text-center mb-4 text-uppercase"> Update Inspection and Acceptance Report</h2>
-                  
+
                   <div class="row mb-3">
                     <div class="col-md-4">
                       <label class="form-label">Entity Name</label>
@@ -256,7 +257,7 @@ require_once('partials/_head.php');
                       <label class="form-label">Responsibility Center</label>
                       <input style="color: #000000;" type="text" class="form-control" name="responsibility_center" value="<?php echo htmlspecialchars($iar_info->responsibility_center); ?>" readonly>
                     </div>
-                    
+
                   </div>
 
                   <div class="row mb-3">
@@ -320,63 +321,64 @@ require_once('partials/_head.php');
                   </div>
 
                   <div style="margin-bottom: 20px;"><strong>Edit Items:</strong></div>
-                  
+
                   <?php foreach ($iar_items as $index => $item): ?>
-                  <div class="card mb-4">
-                    <div class="card-header bg-light">
-                      <h5>Item #<?php echo $index + 1; ?></h5>
-                    </div>
-                    <div class="card-body">
-                      <input type="hidden" name="item_id[]" value="<?php echo $item['item_id']; ?>">
-                      <input type="hidden" name="iar_item_id[]" value="<?php echo $item['iar_item_id']; ?>">
-                      
-                      <div class="row mb-3">
-                        <div class="col-md-4">
-                          <label class="form-label">Stock / Property No.</label>
-                          <input style="color: #000000;" type="text" class="form-control" name="stock_no[]" value="<?php echo htmlspecialchars($item['stock_no']); ?>">
-                        </div>
-                        <div class="col-md-4">
-                          <label class="form-label">Item Description</label>
-                          <input style="color: #000000;" type="text" class="form-control" name="item_description[]" value="<?php echo htmlspecialchars($item['item_description']); ?>">
-                        </div>
-                        <div class="col-md-2">
-                          <label class="form-label">Unit</label>
-                          <select style="color: #000000;" class="form-control" name="unit[]">
-                            <option value="">Select Unit</option>
-                            <option value="box" <?php echo ($item['unit'] == 'box') ? 'selected' : ''; ?>>box</option>
-                            <option value="pieces" <?php echo ($item['unit'] == 'pieces') ? 'selected' : ''; ?>>pieces</option>
-                          </select>
-                        </div>
-                        <div class="col-md-2">
-                          <label class="form-label">Qty</label>
-                          <input style="color: #000000;" type="number" class="form-control quantity" name="quantity[]" value="<?php echo $item['quantity']; ?>">
-                        </div>
+                    <div class="card mb-4">
+                      <div class="card-header bg-light">
+                        <h5>Item #<?php echo $index + 1; ?></h5>
                       </div>
+                      <div class="card-body">
+                        <input type="hidden" name="item_id[]" value="<?php echo $item['item_id']; ?>">
+                        <input type="hidden" name="iar_item_id[]" value="<?php echo $item['iar_item_id']; ?>">
 
-                      <div class="row mb-3">
-                        <div class="col-md-4">
-                          <label class="form-label">Unit Price</label>
-                          <input style="color: #000000;" type="number" step="0.01" class="form-control unit-price" name="unit_price[]" value="<?php echo $item['unit_price']; ?>">
+                        <div class="row mb-3">
+                          <div class="col-md-4">
+                            <label class="form-label">Stock / Property No.</label>
+                            <input style="color: #000000;" type="text" class="form-control" name="stock_no[]" value="<?php echo htmlspecialchars($item['stock_no']); ?>">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">Item Description</label>
+                            <input style="color: #000000;" type="text" class="form-control" name="item_description[]" value="<?php echo htmlspecialchars($item['item_description']); ?>">
+                          </div>
+                          <div class="col-md-2">
+                            <label class="form-label">Unit</label>
+                            <select style="color: #000000;" class="form-control" name="unit[]">
+                              <option value="">Select Unit</option>
+                              <option value="box" <?php echo ($item['unit'] == 'box') ? 'selected' : ''; ?>>box</option>
+                              <option value="pack" <?php echo ($item['unit'] == 'pack') ? 'selected' : ''; ?>>box</option>
+                              <option value="pieces" <?php echo ($item['unit'] == 'pieces') ? 'selected' : ''; ?>>pieces</option>
+                              <option value="set" <?php echo ($item['unit'] == 'set') ? 'selected' : ''; ?>>set</option>
+                            </select>
+                          </div>
+                          <div class="col-md-2">
+                            <label class="form-label">Qty</label>
+                            <input style="color: #000000;" type="number" class="form-control quantity" name="quantity[]" value="<?php echo $item['quantity']; ?>">
+                          </div>
                         </div>
-                        <div class="col-md-4">
-                          <label class="form-label">Total Price</label>
-                          <input style="color: #000000;" type="text" class="form-control total-price" name="total_price[]" value="<?php echo number_format($item['total_price'], 2); ?>" readonly>
-                        </div>
-                        <div class="col-md-4">
-                          <label class="form-label">Remarks</label>
-                          <select style="color: #000000;" class="form-control" name="remarks[]">
-                            <option value="">Select Remarks</option>
-                            <option value="Consumable" <?php echo ($item['remarks'] == 'Consumable') ? 'selected' : ''; ?>>Consumable</option>
-                            <option value="Non-consumable" <?php echo ($item['remarks'] == 'Non-consumable') ? 'selected' : ''; ?>>Non-consumable</option>
-                          </select>
+
+                        <div class="row mb-3">
+                          <div class="col-md-4">
+                            <label class="form-label">Unit Price</label>
+                            <input style="color: #000000;" type="number" step="0.01" class="form-control unit-price" name="unit_price[]" value="<?php echo $item['unit_price']; ?>">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">Total Price</label>
+                            <input style="color: #000000;" type="text" class="form-control total-price" name="total_price[]" value="<?php echo number_format($item['total_price'], 2); ?>" readonly>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">Remarks</label>
+                            <select style="color: #000000;" class="form-control" name="remarks[]">
+                              <option value="">Select Remarks</option>
+                              <option value="Consumable" <?php echo ($item['remarks'] == 'Consumable') ? 'selected' : ''; ?>>Consumable</option>
+                              <option value="Non-consumable" <?php echo ($item['remarks'] == 'Non-consumable') ? 'selected' : ''; ?>>Non-consumable</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
                   <?php endforeach; ?>
-
                   <div class="text-end mt-3">
-                    <button type="submit" class="btn btn-primary">Update All Items</button>
+                    <button type="submit" class="btn btn-primary">Update</button>
                   </div>
                 </div>
               </form>
@@ -384,41 +386,41 @@ require_once('partials/_head.php');
           </div>
         </div>
       </div>
-      
+
       <!-- Footer -->
       <?php require_once('partials/_mainfooter.php'); ?>
     </div>
   </div>
-  
+
   <!-- Argon Scripts -->
   <?php require_once('partials/_scripts.php'); ?>
-  
+
   <script>
     document.addEventListener("DOMContentLoaded", function() {
       // Add event listeners for all quantity and unit price inputs
       const forms = document.querySelectorAll('form');
-      
+
       forms.forEach(form => {
         const qtyInputs = form.querySelectorAll('.quantity');
         const priceInputs = form.querySelectorAll('.unit-price');
         const totalInputs = form.querySelectorAll('.total-price');
-        
+
         // Function to update total price
         function updateTotal(index) {
           const qty = parseFloat(qtyInputs[index].value) || 0;
           const price = parseFloat(priceInputs[index].value) || 0;
           totalInputs[index].value = (qty * price).toFixed(2);
         }
-        
+
         // Add event listeners to all quantity and price inputs
         qtyInputs.forEach((input, index) => {
           input.addEventListener('input', () => updateTotal(index));
         });
-        
+
         priceInputs.forEach((input, index) => {
           input.addEventListener('input', () => updateTotal(index));
         });
-        
+
         // Initialize all totals
         for (let i = 0; i < qtyInputs.length; i++) {
           updateTotal(i);
@@ -427,4 +429,5 @@ require_once('partials/_head.php');
     });
   </script>
 </body>
+
 </html>

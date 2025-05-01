@@ -311,7 +311,7 @@ require_once('partials/_head.php');
                     </div>
                     <div class="col-md-3">
                       <label>Date Acquired</label>
-                      <input style="color: #000000;" type="date" class="form-control" name="date_acquired">
+                      <input style="color: #000000;" type="date" class="form-control" name="date_acquired" required>
                     </div>
                   </div>
 
@@ -320,15 +320,15 @@ require_once('partials/_head.php');
                   <div class="row mb-3">
                     <div class="col-md-4">
                       <label>End User Name</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="end_user_name">
+                      <input style="color: #000000;" type="text" class="form-control" name="end_user_name" required>
                     </div>
                     <div class="col-md-4">
                       <label>Position/Office</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="receiver_position">
+                      <input style="color: #000000;" type="text" class="form-control" name="receiver_position" required>
                     </div>
                     <div class="col-md-4">
                       <label>Date</label>
-                      <input style="color: #000000;" type="date" class="form-control" name="receiver_date">
+                      <input style="color: #000000;" type="date" class="form-control" name="receiver_date" required>
                     </div>
                   </div>
 
@@ -337,15 +337,15 @@ require_once('partials/_head.php');
                   <div class="row mb-3">
                     <div class="col-md-4">
                       <label>Property Custodian Name</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="custodian_name">
+                      <input style="color: #000000;" type="text" class="form-control" name="custodian_name" required>
                     </div>
                     <div class="col-md-4">
                       <label>Position/Office</label>
-                      <input style="color: #000000;" type="text" class="form-control" name="custodian_position">
+                      <input style="color: #000000;" type="text" class="form-control" name="custodian_position" required>
                     </div>
                     <div class="col-md-4">
                       <label>Date</label>
-                      <input style="color: #000000;" type="date" class="form-control" name="custodian_date">
+                      <input style="color: #000000;" type="date" class="form-control" name="custodian_date" required>
                     </div>
                   </div>
                   <div class="form-section" style="margin-top: 20px; border: 1px solid #dee2e6; padding: 20px; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
@@ -366,28 +366,31 @@ require_once('partials/_head.php');
                       </thead>
                       <tbody id="itemsTableBody">
                         <tr>
-                          <td><input type="text" name="property_number[]" class="underline-input"></td>
+                          <td><input type="text" name="property_number[]" class="underline-input" required></td>
                           <td>
-                            <select name="article[]" class="underline-input">
+                            <select name="article[]" class="underline-input" required>
                               <option value="">Select Article</option>
-                              <option value="BUILDING">BUILDING</option>
-                              <option value="LAND">LAND</option>
+                              <!-- <option value="BUILDING">BUILDING</option>
+                              <option value="LAND">LAND</option> -->
                               <option value="IT EQUIPMENT">IT EQUIPMENT</option>
-                              <option value="SCHOOL BUILDING">SCHOOL BUILDING</option>
+                              <!-- <option value="SCHOOL BUILDING">SCHOOL BUILDING</option> -->
                             </select>
                           </td>
-                          <td><input type="text" name="item_description[]" class="underline-input<?php if (isset($errors['item_description'])) echo ' is-invalid'; ?>"></td>
+                          <td><input type="text" name="item_description[]" class="underline-input<?php if (isset($errors['item_description'])) echo ' is-invalid'; ?>" required></td>
                           <td>
-                            <select name="unit[]" class="underline-input">
+                            <select name="unit[]" class="underline-input" required>
                               <option value="">Select Unit</option>
                               <option value="box">box</option>
+                              <option value="pack">pack</option>
                               <option value="pieces">pieces</option>
+                              <option value="set">set</option>
+                              <option value="unit">unit</option>
                             </select>
                           </td>
-                          <td><input type="number" name="quantity[]" class="underline-input" min="1" oninput="calculateRowTotal(this.parentNode.nextElementSibling.querySelector('input'))"></td>
-                          <td><input type="number" name="unit_cost[]" class="underline-input" min="0" step="0.01" oninput="calculateRowTotal(this)"></td>
+                          <td><input type="number" name="quantity[]" class="underline-input" min="1" oninput="calculateRowTotal(this.parentNode.nextElementSibling.querySelector('input'))" required></td>
+                          <td><input type="number" name="unit_cost[]" class="underline-input" min="0" step="0.01" oninput="calculateRowTotal(this)" required></td>
                           <td><input type="number" name="total_amount[]" class="underline-input" min="0" step="0.01" readonly></td>
-                          <td><input type="text" name="remarks[]" class="underline-input"></td>
+                          <td><input type="text" name="remarks[]" class="underline-input" required></td>
                           <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
                         </tr>
                         <?php if (isset($errors['item_description'])): ?><tr>
@@ -447,9 +450,9 @@ require_once('partials/_head.php');
     const tbody = document.getElementById('itemsTableBody');
     const newRow = document.createElement('tr');
     newRow.innerHTML = `
-      <td><input type="text" name="property_number[]" class="underline-input"></td>
+      <td><input type="text" name="property_number[]" class="underline-input" required></td>
       <td>
-        <select name="article[]" class="underline-input">
+        <select name="article[]" class="underline-input" required>
           <option value="">Select Article</option>
           <option value="BUILDING">BUILDING</option>
           <option value="LAND">LAND</option>
@@ -457,18 +460,21 @@ require_once('partials/_head.php');
           <option value="School Building">School Building</option>
         </select>
       </td>
-      <td><input type="text" name="item_description[]" class="underline-input"></td>
+      <td><input type="text" name="item_description[]" class="underline-input" required></td>
       <td>
-        <select name="unit[]" class="underline-input">
+        <select name="unit[]" class="underline-input" required>
           <option value="">Select Unit</option>
           <option value="box">box</option>
+          <option value="pack">pack</option>
           <option value="pieces">pieces</option>
+          <option value="set">set</option>
+          <option value="unit">unit</option>
         </select>
       </td>
-      <td><input type="number" name="quantity[]" class="underline-input" min="1"></td>
-      <td><input type="number" name="unit_cost[]" class="underline-input" min="0" step="0.01"></td>
+      <td><input type="number" name="quantity[]" class="underline-input" min="1" required></td>
+      <td><input type="number" name="unit_cost[]" class="underline-input" min="0" step="0.01" required></td>
       <td><input type="number" name="total_amount[]" class="underline-input" min="0" step="0.01" readonly></td>
-      <td><input type="text" name="remarks[]" class="underline-input"></td>
+      <td><input type="text" name="remarks[]" class="underline-input" required></td>
       <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
     `;
     tbody.appendChild(newRow);

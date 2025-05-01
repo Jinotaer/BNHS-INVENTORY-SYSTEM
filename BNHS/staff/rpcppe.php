@@ -96,7 +96,7 @@ require_once('partials/_head.php');
                 <thead class="thead-light">
                   <tr>
                     <th scope="col">Article</th>
-                    <th scope="col">Description</th>
+                    <th scope="col">Item Description</th>
                     <th scope="col">Property No.</th>
                     <th scope="col">Unit</th>
                     <th scope="col">Unit Value</th>

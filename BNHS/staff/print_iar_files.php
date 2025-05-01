@@ -273,10 +273,9 @@ ob_start();
             <br>
             <p style="margin-top: 30px;"><strong>Inspection Officer/Inspection Committee</strong></p>
             <br>
-            <p><?php echo htmlspecialchars($header_data->inspectors ?? ''); ?></p>
-            <div class="signature-line"></div>
-            <p style="text-align: center;">_________________________________________</p>
-            <p class="text-center">Inspection Officer/Inspection Committee</p>
+            <p style="text-align: center; margin: 0;"><?php echo htmlspecialchars($header_data->inspectors ?? ''); ?></p>
+            <p style="text-align: center; margin: 0;">_________________________________________</p>
+            <p style="text-align: center;">Inspection Officer/Inspection Committee</p>
           </td>
 
           <!-- Right: Receiving Section -->

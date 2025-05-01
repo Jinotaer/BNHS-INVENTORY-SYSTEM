@@ -248,7 +248,7 @@ ob_start(); // Start output buffering
                 <tr>
                     <!-- Left: Inspection Section -->
                     <td style="border: 1px solid black; padding: 10px; vertical-align: top; width: 50%; text-align: center;">
-                        <p><strong>Received from:</strong></p>
+                        <p style="text-align: left;"><strong>Received from:</strong></p>
                         <br>
                         <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($ics->end_user_name ?? ''); ?></p>
@@ -257,11 +257,11 @@ ob_start(); // Start output buffering
                         <br>
                         <p style="text-align: center; "><?php echo htmlspecialchars($ics->end_user_position ?? ''); ?></p>
                         <p style="text-align: center;">______________________________</p>
-                        <p>Position/Office</p>
+                        <p style="text-align: center;">Position/Office</p>
                         <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($ics->end_user_date ?? ''); ?></p>
                         <p style="text-align: center;">______________________________</p>
-                        <p>Date</p>
+                        <p style="text-align: center;">Date</p>
                     </td>
 
                     <!-- Right: Receiving Section -->

@@ -398,9 +398,9 @@ require_once('partials/_head.php');
                         for ($i = 0; $i < $row_count; $i++):
                         ?>
                           <tr>
-                            <td><input type="text" name="inventory_item_no[]" class="underline-input" value="<?php echo isset($inventory_item_nos[$i]) ? htmlspecialchars($inventory_item_nos[$i]) : ''; ?>"></td>
+                            <td><input type="text" name="inventory_item_no[]" class="underline-input" value="<?php echo isset($inventory_item_nos[$i]) ? htmlspecialchars($inventory_item_nos[$i]) : ''; ?>" required></td>
                             <td>
-                              <select name="article[]" class="underline-input">
+                              <select name="article[]" class="underline-input" required>
                                 <option value="">Select Article</option>
                                 <option value="SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT" <?php if (isset($articles[$i]) && $articles[$i] == 'SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT') echo 'selected'; ?>>SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT</option>
                                 <option value="SEMI-EXPENDABLE FURNITURE AND FIXTURES" <?php if (isset($articles[$i]) && $articles[$i] == 'SEMI-EXPENDABLE FURNITURE AND FIXTURES') echo 'selected'; ?>>SEMI-EXPENDABLE FURNITURE AND FIXTURES</option>
@@ -409,18 +409,18 @@ require_once('partials/_head.php');
                                 <option value="SEMI- EXPENDABLE OFFICE PROPERTY" <?php if (isset($articles[$i]) && $articles[$i] == 'SEMI- EXPENDABLE OFFICE PROPERTY') echo 'selected'; ?>>SEMI- EXPENDABLE OFFICE PROPERTY</option>
                               </select>
                             </td>
-                            <td><input type="text" name="item_description[]" class="underline-input<?php if (isset($errors['item_description'])) echo ' is-invalid'; ?>" value="<?php echo isset($item_descriptions[$i]) ? htmlspecialchars($item_descriptions[$i]) : ''; ?>"></td>
+                            <td><input type="text" name="item_description[]" class="underline-input<?php if (isset($errors['item_description'])) echo ' is-invalid'; ?>" value="<?php echo isset($item_descriptions[$i]) ? htmlspecialchars($item_descriptions[$i]) : ''; ?>" required></td>
                             <td>
-                              <select name="unit[]" class="underline-input">
+                              <select name="unit[]" class="underline-input" required>
                                 <option value="">Select Unit</option>
                                 <option value="box" <?php if (isset($units[$i]) && $units[$i] == 'box') echo 'selected'; ?>>box</option>
                                 <option value="pieces" <?php if (isset($units[$i]) && $units[$i] == 'pieces') echo 'selected'; ?>>pieces</option>
                               </select>
                             </td>
-                            <td><input type="number" name="quantity[]" class="underline-input" min="1" value="<?php echo isset($quantities[$i]) ? htmlspecialchars($quantities[$i]) : ''; ?>"></td>
-                            <td><input type="number" name="unit_price[]" class="underline-input" min="0" step="0.01" value="<?php echo isset($unit_prices[$i]) ? htmlspecialchars($unit_prices[$i]) : ''; ?>"></td>
-                            <td><input type="number" name="total_price[]" class="underline-input" min="0" step="0.01" readonly value="<?php echo isset($total_prices[$i]) ? htmlspecialchars($total_prices[$i]) : ''; ?>"></td>
-                            <td><input type="text" name="estimated_life[]" class="underline-input" value="<?php echo isset($estimated_life[$i]) ? htmlspecialchars($estimated_life[$i]) : ''; ?>"></td>
+                            <td><input type="number" name="quantity[]" class="underline-input" min="1" value="<?php echo isset($quantities[$i]) ? htmlspecialchars($quantities[$i]) : ''; ?>" required></td>
+                            <td><input type="number" name="unit_price[]" class="underline-input" min="0" step="0.01" value="<?php echo isset($unit_prices[$i]) ? htmlspecialchars($unit_prices[$i]) : ''; ?>" required></td>
+                            <td><input type="number" name="total_price[]" class="underline-input" min="0" step="0.01" readonly value="<?php echo isset($total_prices[$i]) ? htmlspecialchars($total_prices[$i]) : ''; ?>" required></td>
+                            <td><input type="text" name="estimated_life[]" class="underline-input" value="<?php echo isset($estimated_life[$i]) ? htmlspecialchars($estimated_life[$i]) : ''; ?>" required></td>
                             <td><input type="text" name="remarks[]" class="underline-input" value="<?php echo isset($remarks[$i]) ? htmlspecialchars($remarks[$i]) : ''; ?>"></td>
                             <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
                           </tr>
@@ -498,9 +498,9 @@ require_once('partials/_head.php');
       const tbody = document.getElementById('itemsTableBody');
       const newRow = document.createElement('tr');
       newRow.innerHTML = `
-        <td><input type="text" name="inventory_item_no[]" class="underline-input"></td>
+        <td><input type="text" name="inventory_item_no[]" class="underline-input" required></td>
         <td>
-          <select name="article[]" class="underline-input">
+          <select name="article[]" class="underline-input" required>
             <option value="">Select Article</option>
             <option value="SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT">SEMI- EXPENDABLE SCIENCE AND MATH EQUIPMENT</option>
             <option value="SEMI-EXPENDABLE FURNITURE AND FIXTURES">SEMI-EXPENDABLE FURNITURE AND FIXTURES</option>
@@ -509,18 +509,18 @@ require_once('partials/_head.php');
             <option value="SEMI- EXPENDABLE OFFICE PROPERTY">SEMI- EXPENDABLE OFFICE PROPERTY</option>
           </select>
         </td>
-        <td><input type="text" name="item_description[]" class="underline-input"></td>
+        <td><input type="text" name="item_description[]" class="underline-input" required></td>
         <td>
-          <select name="unit[]" class="underline-input">
+          <select name="unit[]" class="underline-input" required>
             <option value="">Select Unit</option>
             <option value="box">box</option>
             <option value="pieces">pieces</option>
           </select>
         </td>
-        <td><input type="number" name="quantity[]" class="underline-input" min="1"></td>
-        <td><input type="number" name="unit_price[]" class="underline-input" min="0" step="0.01"></td>
-        <td><input type="number" name="total_price[]" class="underline-input" min="0" step="0.01" readonly></td>
-        <td><input type="text" name="estimated_life[]" class="underline-input"></td>
+        <td><input type="number" name="quantity[]" class="underline-input" min="1" required></td>
+        <td><input type="number" name="unit_price[]" class="underline-input" min="0" step="0.01" required></td>
+        <td><input type="number" name="total_price[]" class="underline-input" min="0" step="0.01" readonly required></td>
+        <td><input type="text" name="estimated_life[]" class="underline-input" required></td>
         <td><input type="text" name="remarks[]" class="underline-input"></td>
         <td><button type="button" class="btn btn-danger btn-sm" onclick="removeRow(this)">Remove</button></td>
       `;
