@@ -87,7 +87,7 @@ if ($source_table == 'inspection_acceptance_reports') {
 } else if ($source_table == 'inventory_custodian_slips') {
     if ($item_id > 0 && !empty($item_id_column)) {
         $query = "SELECT t.*, e.entity_name, e.fund_cluster,
-                  i.item_id, i.quantity, i.inventory_item_no, i.ics_item_id,
+                  i.item_id, i.quantity, i.inventory_item_no, i.ics_item_id, i.remarks,
                   itm.item_description, itm.unit, itm.unit_cost, itm.estimated_useful_life
                   FROM `$source_table` t 
                   JOIN entities e ON t.entity_id = e.entity_id 
@@ -96,7 +96,7 @@ if ($source_table == 'inspection_acceptance_reports') {
                   WHERE i.ics_item_id = ?";
     } else {
         $query = "SELECT t.*, e.entity_name, e.fund_cluster,
-                  i.item_id, i.quantity, i.inventory_item_no, i.ics_item_id,
+                  i.item_id, i.quantity, i.inventory_item_no, i.ics_item_id, i.remarks,
                   itm.item_description, itm.unit, itm.unit_cost, itm.estimated_useful_life
                   FROM `$source_table` t 
                   JOIN entities e ON t.entity_id = e.entity_id 
@@ -127,7 +127,7 @@ if ($source_table == 'inspection_acceptance_reports') {
 } else if ($source_table == 'property_acknowledgment_receipts') {
     if ($item_id > 0 && !empty($item_id_column)) {
         $query = "SELECT t.*, e.entity_name, e.fund_cluster,
-                  i.item_id, i.quantity, i.property_number, i.par_item_id,
+                  i.item_id, i.quantity, i.property_number, i.par_item_id,i.remarks,
                   itm.item_description, itm.unit, itm.unit_cost
                   FROM `$source_table` t 
                   JOIN entities e ON t.entity_id = e.entity_id 
@@ -136,7 +136,7 @@ if ($source_table == 'inspection_acceptance_reports') {
                   WHERE i.par_item_id = ?";
     } else {
         $query = "SELECT t.*, e.entity_name, e.fund_cluster,
-                  i.item_id, i.quantity, i.property_number, i.par_item_id,
+                  i.item_id, i.quantity, i.property_number, i.par_item_id,i.remarks,
                   itm.item_description, itm.unit, itm.unit_cost
                   FROM `$source_table` t 
                   JOIN entities e ON t.entity_id = e.entity_id 
@@ -179,422 +179,117 @@ else if ($source_table === 'requisition_and_issue_slips' && isset($item['request
 }
 
 if ($_SERVER['REQUEST_METHOD'] === "POST") {
-    // Gather input based on table type
-    $fields = [];
-    $values = [];
-    $updates = [];
-
-    // Manually calculate totals based on form type
-    if ($source_table == 'inspection_acceptance_reports' && isset($_POST['quantity']) && isset($_POST['unit_price'])) {
-        $quantity = intval($_POST['quantity']);
-        $unit_price = floatval($_POST['unit_price']);
-        $_POST['total_price'] = $quantity * $unit_price;
-    } 
-    else if ($source_table == 'inventory_custodian_slips' && isset($_POST['quantity']) && isset($_POST['unit_cost'])) {
-        $quantity = intval($_POST['quantity']);
-        $unit_cost = floatval($_POST['unit_cost']);
-        $_POST['total_amount'] = $quantity * $unit_cost;
-    }
-    else if ($source_table == 'property_acknowledgment_receipts' && isset($_POST['quantity']) && isset($_POST['unit_cost'])) {
-        $quantity = intval($_POST['quantity']);
-        $unit_cost = floatval($_POST['unit_cost']);
-        $_POST['total_amount'] = $quantity * $unit_cost;
-    }
-    else if ($source_table == 'requisition_and_issue_slips' && isset($_POST['requested_qty']) && isset($_POST['unit_cost'])) {
-        $quantity = intval($_POST['requested_qty']);
-        $unit_cost = floatval($_POST['unit_cost']);
-        $_POST['total_cost'] = $quantity * $unit_cost;
-    }
-
-    switch($source_table) {
-        case 'inspection_acceptance_reports':
-            $fields = [
-                'entity_id', 'iar_no', 'property_number', 'date_acquired', 'receiver_name',
-                'receiver_position', 'receiver_date', 'property_custodian', 'custodian_position',
-                'custodian_date', 'supplier_id', 'po_no_date', 'req_office', 'responsibility_center',
-                'iar_date', 'invoice_no_date', 'remarks', 'teacher_id', 'position', 'date_inspected', 
-                'inspectors', 'barangay_councilor', 'pta_observer', 'date_received'
-            ];
-            break;
-        case 'inventory_custodian_slips':
-            $fields = [
-                'entity_id', 'ics_no', 'end_user_name', 'end_user_position', 
-                'end_user_date', 'custodian_name', 'custodian_position', 'custodian_date'
-            ];
-            break;
-        case 'requisition_and_issue_slips':
-            $fields = [
-                'entity_id', 'ris_no', 'date_acquired', 'requested_by_name',
-                'requested_by_position', 'requested_by_date', 'issued_by_name', 'issued_by_position',
-                'issued_by_date', 'division', 'office', 'responsibility_code', 'purpose', 
-                'requested_by_designation', 'approved_by_name', 'approved_by_designation', 
-                'approved_by_date', 'issued_by_designation', 'received_by_name', 
-                'received_by_designation', 'received_by_date'
-            ];
-            break;
-        case 'property_acknowledgment_receipts':
-            $fields = [
-                'entity_id', 'par_no', 'date_acquired',
-                'end_user_name', 'receiver_position', 'receiver_date',
-                'custodian_name', 'custodian_position', 'custodian_date'
-            ];
-            break;
-    }
-
-    // Get form data for entity and supplier updates
-    $entity_name = isset($_POST['entity_name']) ? sanitize($_POST['entity_name']) : '';
-    $fund_cluster = isset($_POST['fund_cluster']) ? sanitize($_POST['fund_cluster']) : '';
-    $entity_id = isset($_POST['entity_id']) ? intval($_POST['entity_id']) : 0;
-    $supplier_name = isset($_POST['supplier_name']) ? sanitize($_POST['supplier_name']) : '';
-    $supplier_id = isset($_POST['supplier_id']) ? intval($_POST['supplier_id']) : 0;
-
-    foreach ($fields as $field) {
-        if (isset($_POST[$field])) {
-            $updates[] = "`$field` = ?";
-            $values[] = sanitize($_POST[$field]);
-        }
-    }
-
-    if (!empty($updates)) {
-        $setClause = implode(', ', $updates);
-        $sql = "UPDATE `$source_table` SET $setClause WHERE $id_column = ?";
+    // Only allow updating remarks field
+    if (isset($_POST['remarks'])) {
+        $remarks = sanitize($_POST['remarks']);
         
-        // Debug information
-        error_log("SQL Query: " . $sql);
-        error_log("Table: " . $source_table);
-        error_log("ID Column: " . $id_column);
-        error_log("Record ID: " . $record_id);
-        error_log("Updates: " . print_r($updates, true));
-        error_log("Values: " . print_r($values, true));
-        
-        try {
-            $stmt = $mysqli->prepare($sql);
-            
-            if ($stmt === false) {
-                $err = "Error preparing statement: " . $mysqli->error;
-                error_log("MySQL Error: " . $mysqli->error);
-            } else {
-                // Create an array of references for bind_param
-                $types = str_repeat('s', count($values)) . 'i';
-                $values[] = $record_id;
-                
-                // Fix for PHP 7+ bind_param with references
-                $params = array($types);
-                foreach($values as $key => $value) {
-                    $params[] = &$values[$key];
-                }
-                
-                try {
-                    // Call bind_param with the array of references
-                    call_user_func_array(array($stmt, 'bind_param'), $params);
-    
+        // Update the item-specific tables instead of the main tables
+        if ($source_table == 'inspection_acceptance_reports' && $item_id > 0) {
+            $sql = "UPDATE iar_items SET remarks = ? WHERE iar_item_id = ?";
+            try {
+                $stmt = $mysqli->prepare($sql);
+                if ($stmt === false) {
+                    $err = "Error preparing statement: " . $mysqli->error;
+                    error_log("MySQL Error: " . $mysqli->error);
+                } else {
+                    $stmt->bind_param("si", $remarks, $item_id);
                     if ($stmt->execute()) {
-                        // Handle entity_name and fund_cluster updates if they've changed
-                        if (!empty($entity_name) && !empty($fund_cluster) && $entity_id > 0) {
-                            // Update the entities table
-                            $entity_sql = "UPDATE entities SET entity_name = ?, fund_cluster = ? WHERE entity_id = ?";
-                            $entity_stmt = $mysqli->prepare($entity_sql);
-                            if ($entity_stmt) {
-                                $entity_stmt->bind_param("ssi", $entity_name, $fund_cluster, $entity_id);
-                                $entity_stmt->execute();
-                                $entity_stmt->close();
-                            }
-                        }
-                        
-                        // Handle supplier_name updates for IAR
-                        if ($source_table == 'inspection_acceptance_reports' && !empty($supplier_name) && $supplier_id > 0) {
-                            // Update the suppliers table
-                            $supplier_sql = "UPDATE suppliers SET supplier_name = ? WHERE supplier_id = ?";
-                            $supplier_stmt = $mysqli->prepare($supplier_sql);
-                            if ($supplier_stmt) {
-                                $supplier_stmt->bind_param("si", $supplier_name, $supplier_id);
-                                $supplier_stmt->execute();
-                                $supplier_stmt->close();
-                            }
-                        }
-                        
-                        // Update the item-related tables based on the source table
-                        if ($source_table == 'inspection_acceptance_reports' && isset($_POST['quantity']) && isset($_POST['unit_price'])) {
-                            $quantity = intval($_POST['quantity']);
-                            $unit_price = floatval($_POST['unit_price']);
-                            $total_price = $quantity * $unit_price;
-                            
-                            // Use item_id if provided, otherwise find the first item
-                            if ($item_id > 0) {
-                                $iar_item_id = $item_id;
-                                
-                                // Update the iar_items table directly with the provided item_id
-                                $update_sql = "UPDATE iar_items SET quantity = ?, unit_price = ?, total_price = ? WHERE iar_item_id = ?";
-                                $update_stmt = $mysqli->prepare($update_sql);
-                                if ($update_stmt) {
-                                    $update_stmt->bind_param('iddi', $quantity, $unit_price, $total_price, $iar_item_id);
-                                    $update_stmt->execute();
-                                    $update_stmt->close();
-                                }
-                            } else {
-                                // Find the first iar_item_id for this IAR
-                                $find_sql = "SELECT iar_item_id FROM iar_items WHERE iar_id = ? LIMIT 1";
-                                $find_stmt = $mysqli->prepare($find_sql);
-                                if ($find_stmt) {
-                                    $find_stmt->bind_param('i', $record_id);
-                                    $find_stmt->execute();
-                                    $find_result = $find_stmt->get_result();
-                                    if ($row = $find_result->fetch_assoc()) {
-                                        $iar_item_id = $row['iar_item_id'];
-                                        
-                                        // Update the iar_items table
-                                        $update_sql = "UPDATE iar_items SET quantity = ?, unit_price = ?, total_price = ? WHERE iar_item_id = ?";
-                                        $update_stmt = $mysqli->prepare($update_sql);
-                                        if ($update_stmt) {
-                                            $update_stmt->bind_param('iddi', $quantity, $unit_price, $total_price, $iar_item_id);
-                                            $update_stmt->execute();
-                                            $update_stmt->close();
-                                        }
-                                    }
-                                    $find_stmt->close();
-                                }
-                            }
-                        } 
-                        else if ($source_table == 'inventory_custodian_slips' && isset($_POST['quantity']) && isset($_POST['unit_cost'])) {
-                            $quantity = intval($_POST['quantity']);
-                            $unit_cost = floatval($_POST['unit_cost']);
-                            
-                            // Use item_id if provided, otherwise find the first item
-                            if ($item_id > 0) {
-                                $ics_item_id = $item_id;
-                                
-                                // Get the item_id for this ICS item
-                                $find_item_sql = "SELECT item_id FROM ics_items WHERE ics_item_id = ?";
-                                $find_item_stmt = $mysqli->prepare($find_item_sql);
-                                if ($find_item_stmt) {
-                                    $find_item_stmt->bind_param('i', $ics_item_id);
-                                    $find_item_stmt->execute();
-                                    $find_item_result = $find_item_stmt->get_result();
-                                    if ($row = $find_item_result->fetch_assoc()) {
-                                        $item_id = $row['item_id'];
-                                        
-                                        // Update the ics_items table
-                                        $update_sql = "UPDATE ics_items SET quantity = ? WHERE ics_item_id = ?";
-                                        $update_stmt = $mysqli->prepare($update_sql);
-                                        if ($update_stmt) {
-                                            $update_stmt->bind_param('ii', $quantity, $ics_item_id);
-                                            $update_stmt->execute();
-                                            $update_stmt->close();
-                                        }
-                                        
-                                        // Update the items table with new unit_cost
-                                        $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
-                                        $update_items_stmt = $mysqli->prepare($update_items_sql);
-                                        if ($update_items_stmt) {
-                                            $update_items_stmt->bind_param('di', $unit_cost, $item_id);
-                                            $update_items_stmt->execute();
-                                            $update_items_stmt->close();
-                                        }
-                                    }
-                                    $find_item_stmt->close();
-                                }
-                            } else {
-                                // Find the first ics_item_id for this ICS
-                                $find_sql = "SELECT ics_item_id, item_id FROM ics_items WHERE ics_id = ? LIMIT 1";
-                                $find_stmt = $mysqli->prepare($find_sql);
-                                if ($find_stmt) {
-                                    $find_stmt->bind_param('i', $record_id);
-                                    $find_stmt->execute();
-                                    $find_result = $find_stmt->get_result();
-                                    if ($row = $find_result->fetch_assoc()) {
-                                        $ics_item_id = $row['ics_item_id'];
-                                        $item_id = $row['item_id'];
-                                        
-                                        // Update the ics_items table
-                                        $update_sql = "UPDATE ics_items SET quantity = ? WHERE ics_item_id = ?";
-                                        $update_stmt = $mysqli->prepare($update_sql);
-                                        if ($update_stmt) {
-                                            $update_stmt->bind_param('ii', $quantity, $ics_item_id);
-                                            $update_stmt->execute();
-                                            $update_stmt->close();
-                                        }
-                                        
-                                        // Update the items table with new unit_cost
-                                        $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
-                                        $update_items_stmt = $mysqli->prepare($update_items_sql);
-                                        if ($update_items_stmt) {
-                                            $update_items_stmt->bind_param('di', $unit_cost, $item_id);
-                                            $update_items_stmt->execute();
-                                            $update_items_stmt->close();
-                                        }
-                                    }
-                                    $find_stmt->close();
-                                }
-                            }
-                        } 
-                        else if ($source_table == 'requisition_and_issue_slips' && isset($_POST['requested_qty']) && isset($_POST['unit_cost'])) {
-                            $requested_qty = intval($_POST['requested_qty']);
-                            $unit_cost = floatval($_POST['unit_cost']);
-                            
-                            // Use item_id if provided, otherwise find the first item
-                            if ($item_id > 0) {
-                                $ris_item_id = $item_id;
-                                
-                                // Get the item_id for this RIS item
-                                $find_item_sql = "SELECT item_id FROM ris_items WHERE ris_item_id = ?";
-                                $find_item_stmt = $mysqli->prepare($find_item_sql);
-                                if ($find_item_stmt) {
-                                    $find_item_stmt->bind_param('i', $ris_item_id);
-                                    $find_item_stmt->execute();
-                                    $find_item_result = $find_item_stmt->get_result();
-                                    if ($row = $find_item_result->fetch_assoc()) {
-                                        $item_id = $row['item_id'];
-                                        
-                                        // Update the ris_items table
-                                        $update_sql = "UPDATE ris_items SET requested_qty = ?, stock_available = ? WHERE ris_item_id = ?";
-                                        $update_stmt = $mysqli->prepare($update_sql);
-                                        if ($update_stmt) {
-                                            $stock_available = isset($_POST['stock_available']) ? $_POST['stock_available'] : 'no';
-                                            $update_stmt->bind_param('isi', $requested_qty, $stock_available, $ris_item_id);
-                                            $update_stmt->execute();
-                                            $update_stmt->close();
-                                        }
-                                        
-                                        // Update the items table with new unit_cost
-                                        $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
-                                        $update_items_stmt = $mysqli->prepare($update_items_sql);
-                                        if ($update_items_stmt) {   
-                                            $update_items_stmt->bind_param('di', $unit_cost, $item_id);
-                                            $update_items_stmt->execute();
-                                            $update_items_stmt->close();
-                                        }
-                                    }
-                                    $find_item_stmt->close();
-                                }
-                            } else {
-                                // Find the first ris_item_id for this RIS
-                                $find_sql = "SELECT ris_item_id, item_id FROM ris_items WHERE ris_id = ? LIMIT 1";
-                                $find_stmt = $mysqli->prepare($find_sql);
-                                if ($find_stmt) {
-                                    $find_stmt->bind_param('i', $record_id);
-                                    $find_stmt->execute();
-                                    $find_result = $find_stmt->get_result();
-                                    if ($row = $find_result->fetch_assoc()) {
-                                        $ris_item_id = $row['ris_item_id'];
-                                        $item_id = $row['item_id'];
-                                        
-                                        // Update the ris_items table
-                                        $update_sql = "UPDATE ris_items SET requested_qty = ?, stock_available = ? WHERE ris_item_id = ?";
-                                        $update_stmt = $mysqli->prepare($update_sql);
-                                        if ($update_stmt) {
-                                            $stock_available = isset($_POST['stock_available']) ? $_POST['stock_available'] : 'no';
-                                            $update_stmt->bind_param('isi', $requested_qty, $stock_available, $ris_item_id);
-                                            $update_stmt->execute();
-                                            $update_stmt->close();
-                                        }
-                                        
-                                        // Update the items table with new unit_cost
-                                        $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
-                                        $update_items_stmt = $mysqli->prepare($update_items_sql);
-                                        if ($update_items_stmt) {   
-                                            $update_items_stmt->bind_param('di', $unit_cost, $item_id);
-                                            $update_items_stmt->execute();
-                                            $update_items_stmt->close();
-                                        }
-                                    }
-                                    $find_stmt->close();
-                                }
-                            }
-                        } 
-                        else if ($source_table == 'property_acknowledgment_receipts' && isset($_POST['quantity']) && isset($_POST['unit_cost'])) {
-                            $quantity = intval($_POST['quantity']);
-                            $unit_cost = floatval($_POST['unit_cost']);
-                            
-                            // Use item_id if provided, otherwise find the first item
-                            if ($item_id > 0) {
-                                $par_item_id = $item_id;
-                                
-                                // Get the item_id for this PAR item
-                                $find_item_sql = "SELECT item_id FROM par_items WHERE par_item_id = ?";
-                                $find_item_stmt = $mysqli->prepare($find_item_sql);
-                                if ($find_item_stmt) {
-                                    $find_item_stmt->bind_param('i', $par_item_id);
-                                    $find_item_stmt->execute();
-                                    $find_item_result = $find_item_stmt->get_result();
-                                    if ($row = $find_item_result->fetch_assoc()) {
-                                        $item_id = $row['item_id'];
-                                        
-                                        // Update the par_items table
-                                        $update_sql = "UPDATE par_items SET quantity = ? WHERE par_item_id = ?";
-                                        $update_stmt = $mysqli->prepare($update_sql);
-                                        if ($update_stmt) {
-                                            $update_stmt->bind_param('ii', $quantity, $par_item_id);
-                                            $update_stmt->execute();
-                                            $update_stmt->close();
-                                        }
-                                        
-                                        // Update the items table with new unit_cost
-                                        $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
-                                        $update_items_stmt = $mysqli->prepare($update_items_sql);
-                                        if ($update_items_stmt) {
-                                            $update_items_stmt->bind_param('di', $unit_cost, $item_id);
-                                            $update_items_stmt->execute();
-                                            $update_items_stmt->close();
-                                        }
-                                    }
-                                    $find_item_stmt->close();
-                                }
-                            } else {
-                                // Find the first par_item_id for this PAR
-                                $find_sql = "SELECT par_item_id, item_id FROM par_items WHERE par_id = ? LIMIT 1";
-                                $find_stmt = $mysqli->prepare($find_sql);
-                                if ($find_stmt) {
-                                    $find_stmt->bind_param('i', $record_id);
-                                    $find_stmt->execute();
-                                    $find_result = $find_stmt->get_result();
-                                    if ($row = $find_result->fetch_assoc()) {
-                                        $par_item_id = $row['par_item_id'];
-                                        $item_id = $row['item_id'];
-                                        
-                                        // Update the par_items table
-                                        $update_sql = "UPDATE par_items SET quantity = ? WHERE par_item_id = ?";
-                                        $update_stmt = $mysqli->prepare($update_sql);
-                                        if ($update_stmt) {
-                                            $update_stmt->bind_param('ii', $quantity, $par_item_id);
-                                            $update_stmt->execute();
-                                            $update_stmt->close();
-                                        }
-                                        
-                                        // Update the items table with new unit_cost
-                                        $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
-                                        $update_items_stmt = $mysqli->prepare($update_items_sql);
-                                        if ($update_items_stmt) {
-                                            $update_items_stmt->bind_param('di', $unit_cost, $item_id);
-                                            $update_items_stmt->execute();
-                                            $update_items_stmt->close();
-                                        }
-                                    }
-                                    $find_stmt->close();
-                                }
-                            }
-                        }
-                        
-                        $success = "Record updated successfully.";
-                        // Redirect to the same page to prevent form resubmission
-                        header("Location: track_inventory.php?");
+                        $success = "Remarks updated successfully.";
+                        // Redirect to prevent form resubmission
+                        header("Location: track_inventory.php?success=Remarks updated successfully.");
                         exit();
                     } else {
                         $err = "Update failed: " . $stmt->error;
                         error_log("Execute Error: " . $stmt->error);
                     }
-                } catch (Exception $e) {
-                    $err = "Binding parameters failed: " . $e->getMessage();
-                    error_log("Binding Error: " . $e->getMessage());
+                    $stmt->close();
                 }
-                $stmt->close();
+            } catch (Exception $e) {
+                $err = "Database operation failed: " . $e->getMessage();
+                error_log("Exception: " . $e->getMessage());
             }
-        } catch (Exception $e) {
-            $err = "Database operation failed: " . $e->getMessage();
-            error_log("Exception: " . $e->getMessage());
+        } 
+        else if ($source_table == 'inventory_custodian_slips' && $item_id > 0) {
+            $sql = "UPDATE ics_items SET remarks = ? WHERE ics_item_id = ?";
+            try {
+                $stmt = $mysqli->prepare($sql);
+                if ($stmt === false) {
+                    $err = "Error preparing statement: " . $mysqli->error;
+                    error_log("MySQL Error: " . $mysqli->error);
+                } else {
+                    $stmt->bind_param("si", $remarks, $item_id);
+                    if ($stmt->execute()) {
+                        $success = "Remarks updated successfully.";
+                        // Redirect to prevent form resubmission
+                        header("Location: track_inventory.php?success=Remarks updated successfully.");
+                        exit();
+                    } else {
+                        $err = "Update failed: " . $stmt->error;
+                        error_log("Execute Error: " . $stmt->error);
+                    }
+                    $stmt->close();
+                }
+            } catch (Exception $e) {
+                $err = "Database operation failed: " . $e->getMessage();
+                error_log("Exception: " . $e->getMessage());
+            }
+        }
+        else if ($source_table == 'property_acknowledgment_receipts' && $item_id > 0) {
+            $sql = "UPDATE par_items SET remarks = ? WHERE par_item_id = ?";
+            try {
+                $stmt = $mysqli->prepare($sql);
+                if ($stmt === false) {
+                    $err = "Error preparing statement: " . $mysqli->error;
+                    error_log("MySQL Error: " . $mysqli->error);
+                } else {
+                    $stmt->bind_param("si", $remarks, $item_id);
+                    if ($stmt->execute()) {
+                        $success = "Remarks updated successfully.";
+                        // Redirect to prevent form resubmission
+                        header("Location: track_inventory.php?success=Remarks updated successfully.");
+                        exit();
+                    } else {
+                        $err = "Update failed: " . $stmt->error;
+                        error_log("Execute Error: " . $stmt->error);
+                    }
+                    $stmt->close();
+                }
+            } catch (Exception $e) {
+                $err = "Database operation failed: " . $e->getMessage();
+                error_log("Exception: " . $e->getMessage());
+            }
+        }
+        else if ($source_table == 'requisition_and_issue_slips' && $item_id > 0) {
+            $sql = "UPDATE ris_items SET remarks = ? WHERE ris_item_id = ?";
+            try {
+                $stmt = $mysqli->prepare($sql);
+                if ($stmt === false) {
+                    $err = "Error preparing statement: " . $mysqli->error;
+                    error_log("MySQL Error: " . $mysqli->error);
+                } else {
+                    $stmt->bind_param("si", $remarks, $item_id);
+                    if ($stmt->execute()) {
+                        $success = "Remarks updated successfully.";
+                        // Redirect to prevent form resubmission
+                        header("Location: track_inventory.php?success=Remarks updated successfully.");
+                        exit();
+                    } else {
+                        $err = "Update failed: " . $stmt->error;
+                        error_log("Execute Error: " . $stmt->error);
+                    }
+                    $stmt->close();
+                }
+            } catch (Exception $e) {
+                $err = "Database operation failed: " . $e->getMessage();
+                error_log("Exception: " . $e->getMessage());
+            }
+        } else {
+            $err = "Invalid item or form type.";
+            error_log("Invalid item ID or source table for remarks update.");
         }
     } else {
-        $err = "No fields were updated.";
-        error_log("No updates specified in the form submission.");
+        $err = "Remarks field is required.";
+        error_log("Remarks field not provided in form submission.");
     }
 }
 
@@ -649,49 +344,49 @@ require_once('partials/_head.php');
                 <div class="row mt-3 mb-3">
                     <div class="col-md-4">
                         <label>Entity Name</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="entity_name" value="<?php echo get_field_value($item, 'entity_name'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="entity_name" value="<?php echo get_field_value($item, 'entity_name'); ?>" readonly>
                         <input type="hidden" name="entity_id" value="<?php echo get_field_value($item, 'entity_id'); ?>">
                     </div>
                     <div class="col-md-4">
                         <label>Fund Cluster</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="fund_cluster" value="<?php echo get_field_value($item, 'fund_cluster'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="fund_cluster" value="<?php echo get_field_value($item, 'fund_cluster'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label>PAR No.</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="par_no" value="<?php echo get_field_value($item, 'par_no'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="par_no" value="<?php echo get_field_value($item, 'par_no'); ?>" readonly>
                     </div>
                 </div>
                 <!-- Item Info -->
                 <div class="row mb-3">
                     <div class="col-md-2">
                         <label>Quantity</label>
-                        <input style="color: #000000;" type="number" class="form-control" name="quantity" value="<?php echo get_field_value($item, 'quantity'); ?>">
+                        <input style="color: #000000;" type="number" class="form-control" name="quantity" value="<?php echo get_field_value($item, 'quantity'); ?>" readonly>
                     </div>
                     <div class="col-md-2">
                         <label>Unit</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="unit" value="<?php echo get_field_value($item, 'unit'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="unit" value="<?php echo get_field_value($item, 'unit'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label>Description</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="item_description" value="<?php echo get_field_value($item, 'item_description'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="item_description" value="<?php echo get_field_value($item, 'item_description'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label>Property Number</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="property_number" value="<?php echo get_field_value($item, 'property_number'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="property_number" value="<?php echo get_field_value($item, 'property_number'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label>Date Acquired</label>
-                        <input style="color: #000000;" type="date" class="form-control" name="date_acquired" value="<?php echo get_field_value($item, 'date_acquired'); ?>">
+                        <input style="color: #000000;" type="date" class="form-control" name="date_acquired" value="<?php echo get_field_value($item, 'date_acquired'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label>Unit Cost</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="unit_cost" value="<?php echo get_field_value($item, 'unit_cost'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="unit_cost" value="<?php echo get_field_value($item, 'unit_cost'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Total Amount</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="total_amount" value="<?php echo get_field_value($item, 'total_amount'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="total_amount" value="<?php echo get_field_value($item, 'total_amount'); ?>" readonly>
                     </div>
                 </div>
                 <!-- Receiver Section -->
@@ -699,15 +394,15 @@ require_once('partials/_head.php');
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label>End User Name</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="end_user_name" value="<?php echo get_field_value($item, 'end_user_name'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="end_user_name" value="<?php echo get_field_value($item, 'end_user_name'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label>Position/Office</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="receiver_position" value="<?php echo get_field_value($item, 'receiver_position'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="receiver_position" value="<?php echo get_field_value($item, 'receiver_position'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label>Date</label>
-                        <input style="color: #000000;" type="date" class="form-control" name="receiver_date" value="<?php echo get_field_value($item, 'receiver_date'); ?>">
+                        <input style="color: #000000;" type="date" class="form-control" name="receiver_date" value="<?php echo get_field_value($item, 'receiver_date'); ?>" readonly>
                     </div>
                 </div>
                 <!-- Issue Section -->
@@ -715,15 +410,23 @@ require_once('partials/_head.php');
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label>Property Custodian Name</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="custodian_name" value="<?php echo get_field_value($item, 'custodian_name'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="custodian_name" value="<?php echo get_field_value($item, 'custodian_name'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label>Position/Office</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="custodian_position" value="<?php echo get_field_value($item, 'custodian_position'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="custodian_position" value="<?php echo get_field_value($item, 'custodian_position'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label>Date</label>
-                        <input style="color: #000000;" type="date" class="form-control" name="custodian_date" value="<?php echo get_field_value($item, 'custodian_date'); ?>">
+                        <input style="color: #000000;" type="date" class="form-control" name="custodian_date" value="<?php echo get_field_value($item, 'custodian_date'); ?>" readonly>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;"><strong>Edit:</strong></div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label>Remarks</label>
+                        <textarea style="color: #000000;" class="form-control" name="remarks"><?php echo isset($item['remarks']) ? $item['remarks'] : ''; ?></textarea>
                     </div>
                 </div>
 
@@ -732,129 +435,135 @@ require_once('partials/_head.php');
                 <div class="row mb-3">
                     <div class="col-md-3">
                         <label class="form-label">Entity Name</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="entity_name" value="<?php echo get_field_value($item, 'entity_name'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="entity_name" value="<?php echo get_field_value($item, 'entity_name'); ?>" readonly>
                         <input type="hidden" name="entity_id" value="<?php echo get_field_value($item, 'entity_id'); ?>">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Fund Cluster</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="fund_cluster" value="<?php echo get_field_value($item, 'fund_cluster'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="fund_cluster" value="<?php echo get_field_value($item, 'fund_cluster'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Division</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="division" value="<?php echo get_field_value($item, 'division'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="division" value="<?php echo get_field_value($item, 'division'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Office</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="office" value="<?php echo get_field_value($item, 'office'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="office" value="<?php echo get_field_value($item, 'office'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-3">
                         <label class="form-label">Responsibility Center Code</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="responsibility_code" value="<?php echo get_field_value($item, 'responsibility_code'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="responsibility_code" value="<?php echo get_field_value($item, 'responsibility_code'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">RIS No.</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="ris_no" value="<?php echo get_field_value($item, 'ris_no'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="ris_no" value="<?php echo get_field_value($item, 'ris_no'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Stock No.</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="stock_no" value="<?php echo get_field_value($item, 'stock_no'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="stock_no" value="<?php echo get_field_value($item, 'stock_no'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Unit</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="unit" value="<?php echo get_field_value($item, 'unit'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="unit" value="<?php echo get_field_value($item, 'unit'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-3">
                         <label class="form-label">Item Description</label>
-                        <input style="color: #000000;" type="text" style="color: #000000;" class="form-control" name="item_description" value="<?php echo get_field_value($item, 'item_description'); ?>" required>
+                        <input style="color: #000000;" type="text" style="color: #000000;" class="form-control" name="item_description" value="<?php echo get_field_value($item, 'item_description'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Requested Quantity</label>
-                        <input style="color: #000000;" type="number" style="color: #000000;" class="form-control" name="requested_qty" value="<?php echo get_field_value($item, 'requested_qty'); ?>" required>
+                        <input style="color: #000000;" type="number" style="color: #000000;" class="form-control" name="requested_qty" value="<?php echo get_field_value($item, 'requested_qty'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Stock Available</label>
-                        <select style="color: #000000;" class="form-control" name="stock_available" required>
-                            <option value="yes" <?php echo get_field_value($item, 'stock_available') === 'yes' ? 'selected' : ''; ?>>Yes</option>
-                            <option value="no" <?php echo get_field_value($item, 'stock_available') === 'no' ? 'selected' : ''; ?>>No</option>
-                        </select>
+                        <input style="color: #000000;" type="text" class="form-control" value="<?php echo get_field_value($item, 'stock_available'); ?>" readonly>
+                        <input type="hidden" name="stock_available" value="<?php echo get_field_value($item, 'stock_available'); ?>">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Issued Quantity</label>
-                        <input style="color: #000000;" type="number" style="color: #000000;" class="form-control" name="issued_qty" value="<?php echo get_field_value($item, 'issued_qty'); ?>" required>
+                        <input style="color: #000000;" type="number" style="color: #000000;" class="form-control" name="issued_qty" value="<?php echo get_field_value($item, 'issued_qty'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
-                    <div class="col-md-3">
+                    <!-- <div class="col-md-6">
                         <label class="form-label">Remarks</label>
-                        <input style="color: #000000;" type="text" style="color: #000000;" class="form-control" name="remarks" value="<?php echo get_field_value($item, 'remarks'); ?>">
-                    </div>
-                    <div class="col-md-3">
+                        <textarea style="color: #000000;" class="form-control" name="remarks"><?php echo get_field_value($item, 'remarks'); ?></textarea>
+                    </div> -->
+                    <div class="col-md-6">
                         <label class="form-label">Purpose</label>
-                        <input style="color: #000000;" type="text" style="color: #000000;" class="form-control" name="purpose" value="<?php echo get_field_value($item, 'purpose'); ?>" required>
+                        <input style="color: #000000;" type="text" style="color: #000000;" class="form-control" name="purpose" value="<?php echo get_field_value($item, 'purpose'); ?>" readonly>
                     </div>
                 </div>
                 <h5 class="mt-4">Requested By</h5>
                 <div class="row mb-3">
                     <div class="col-md-3">
                         <label class="form-label">Name</label>
-                        <input type="text" style="color: #000000;" class="form-control" name="requested_by_name" value="<?php echo get_field_value($item, 'requested_by_name'); ?>" required>
+                        <input type="text" style="color: #000000;" class="form-control" name="requested_by_name" value="<?php echo get_field_value($item, 'requested_by_name'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Designation</label>
-                        <input type="text" style="color: #000000;" class="form-control" name="requested_by_designation" value="<?php echo get_field_value($item, 'requested_by_designation'); ?>" required>
+                        <input type="text" style="color: #000000;" class="form-control" name="requested_by_designation" value="<?php echo get_field_value($item, 'requested_by_designation'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Date</label>
-                        <input type="date" style="color: #000000;" class="form-control" name="requested_by_date" value="<?php echo get_field_value($item, 'requested_by_date'); ?>" required>
+                        <input type="date" style="color: #000000;" class="form-control" name="requested_by_date" value="<?php echo get_field_value($item, 'requested_by_date'); ?>" readonly>
                     </div>
                 </div>
                 <h5>Approved By</h5>
                 <div class="row mb-3">
                     <div class="col-md-3">
                         <label class="form-label">Name</label>
-                        <input type="text" style="color: #000000;" class="form-control" name="approved_by_name" value="<?php echo get_field_value($item, 'approved_by_name'); ?>" required>
+                        <input type="text" style="color: #000000;" class="form-control" name="approved_by_name" value="<?php echo get_field_value($item, 'approved_by_name'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Designation</label>
-                        <input type="text" style="color: #000000;" class="form-control" name="approved_by_designation" value="<?php echo get_field_value($item, 'approved_by_designation'); ?>" required>
+                        <input type="text" style="color: #000000;" class="form-control" name="approved_by_designation" value="<?php echo get_field_value($item, 'approved_by_designation'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Date</label>
-                        <input type="date" style="color: #000000;" class="form-control" name="approved_by_date" value="<?php echo $item['approved_by_date'] ?? ''; ?>" required>
+                        <input type="date" style="color: #000000;" class="form-control" name="approved_by_date" value="<?php echo $item['approved_by_date'] ?? ''; ?>" readonly>
                     </div>
                 </div>
                 <h5>Issued By</h5>
                 <div class="row mb-3">
                     <div class="col-md-3">
                         <label class="form-label">Name</label>
-                        <input type="text" style="color: #000000;" class="form-control" name="issued_by_name" value="<?php echo get_field_value($item, 'issued_by_name'); ?>" required>
+                        <input type="text" style="color: #000000;" class="form-control" name="issued_by_name" value="<?php echo get_field_value($item, 'issued_by_name'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Designation</label>
-                        <input type="text" style="color: #000000;" class="form-control" name="issued_by_designation" value="<?php echo get_field_value($item, 'issued_by_designation'); ?>" required>
+                        <input type="text" style="color: #000000;" class="form-control" name="issued_by_designation" value="<?php echo get_field_value($item, 'issued_by_designation'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Date</label>
-                        <input type="date" style="color: #000000;" class="form-control" name="issued_by_date" value="<?php echo get_field_value($item, 'issued_by_date'); ?>" required>
+                        <input type="date" style="color: #000000;" class="form-control" name="issued_by_date" value="<?php echo get_field_value($item, 'issued_by_date'); ?>" readonly>
                     </div>
                 </div>
                 <h5>Received By</h5>
                 <div class="row mb-3">
                     <div class="col-md-3">
                         <label class="form-label">Name</label>
-                        <input type="text" style="color: #000000;" class="form-control" name="received_by_name" value="<?php echo get_field_value($item, 'received_by_name'); ?>" required>
+                        <input type="text" style="color: #000000;" class="form-control" name="received_by_name" value="<?php echo get_field_value($item, 'received_by_name'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Designation</label>
-                        <input type="text" style="color: #000000;" class="form-control" name="received_by_designation" value="<?php echo get_field_value($item, 'received_by_designation'); ?>" required>
+                        <input type="text" style="color: #000000;" class="form-control" name="received_by_designation" value="<?php echo get_field_value($item, 'received_by_designation'); ?>" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Date</label>
-                        <input type="date" style="color: #000000;" class="form-control" name="received_by_date" value="<?php echo get_field_value($item, 'received_by_date'); ?>" required>
+                        <input type="date" style="color: #000000;" class="form-control" name="received_by_date" value="<?php echo get_field_value($item, 'received_by_date'); ?>" readonly>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 10px; margin-top: 25px;"><strong>Edit:</strong></div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label>Remarks</label>
+                        <textarea style="color: #000000;" class="form-control" name="remarks"><?php echo isset($item['remarks']) ? $item['remarks'] : ''; ?></textarea>
                     </div>
                 </div>
 
@@ -863,78 +572,89 @@ require_once('partials/_head.php');
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label class="form-label">Entity Name</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="entity_name" value="<?php echo get_field_value($item, 'entity_name'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="entity_name" value="<?php echo get_field_value($item, 'entity_name'); ?>" readonly>
                         <input type="hidden" name="entity_id" value="<?php echo get_field_value($item, 'entity_id'); ?>">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Fund Cluster</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="fund_cluster" value="<?php echo get_field_value($item, 'fund_cluster'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="fund_cluster" value="<?php echo get_field_value($item, 'fund_cluster'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">ICS No.</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="ics_no" value="<?php echo get_field_value($item, 'ics_no'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="ics_no" value="<?php echo get_field_value($item, 'ics_no'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-2">
                         <label class="form-label">Quantity</label>
-                        <input style="color: #000000;" type="number" class="form-control" name="quantity" value="<?php echo get_field_value($item, 'quantity'); ?>" required>
+                        <input style="color: #000000;" type="number" class="form-control" name="quantity" value="<?php echo get_field_value($item, 'quantity'); ?>" readonly>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Unit</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="unit" value="<?php echo get_field_value($item, 'unit'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="unit" value="<?php echo get_field_value($item, 'unit'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Unit Cost</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="unit_cost" value="<?php echo get_field_value($item, 'unit_cost'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="unit_cost" value="<?php echo get_field_value($item, 'unit_cost'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Total Amount</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="total_amount" value="<?php echo get_field_value($item, 'total_amount'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="total_amount" value="<?php echo get_field_value($item, 'total_amount'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label">Item Description</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="item_description" value="<?php echo get_field_value($item, 'item_description'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="item_description" value="<?php echo get_field_value($item, 'item_description'); ?>" readonly>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label">Inventory Item No.</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="inventory_item_no" value="<?php echo get_field_value($item, 'inventory_item_no'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="inventory_item_no" value="<?php echo get_field_value($item, 'inventory_item_no'); ?>" readonly>
                     </div>
-                </div>
-                <div class="row mb-3">
                     <div class="col-md-4">
                         <label class="form-label">Estimated Useful Life</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="estimated_useful_life" value="<?php echo get_field_value($item, 'estimated_useful_life'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="estimated_useful_life" value="<?php echo get_field_value($item, 'estimated_useful_life'); ?>" readonly>
                     </div>
+                </div>
+                <div class="row mb-3">
                     <div class="col-md-4">
                         <label class="form-label">End User Name</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="end_user_name" value="<?php echo get_field_value($item, 'end_user_name'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="end_user_name" value="<?php echo get_field_value($item, 'end_user_name'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Position / Office</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="end_user_position" value="<?php echo get_field_value($item, 'end_user_position'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="end_user_position" value="<?php echo get_field_value($item, 'end_user_position'); ?>" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Date Received (by End User)</label>
+                        <input style="color: #000000;" type="date" class="form-control" name="end_user_date" value="<?php echo get_field_value($item, 'end_user_date'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <label class="form-label">Date Received (by End User)</label>
-                        <input style="color: #000000;" type="date" class="form-control" name="end_user_date" value="<?php echo get_field_value($item, 'end_user_date'); ?>" required>
-                    </div>
-                    <div class="col-md-4">
                         <label class="form-label">Property Custodian Name</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="custodian_name" value="<?php echo get_field_value($item, 'custodian_name'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="custodian_name" value="<?php echo get_field_value($item, 'custodian_name'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Position / Office (Custodian)</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="custodian_position" value="<?php echo get_field_value($item, 'custodian_position'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="custodian_position" value="<?php echo get_field_value($item, 'custodian_position'); ?>" readonly>
                     </div>
-                </div>
-                <div class="row mb-3">
                     <div class="col-md-4">
                         <label class="form-label">Date Received (by Custodian)</label>
-                        <input style="color: #000000;" type="date" class="form-control" name="custodian_date" value="<?php echo get_field_value($item, 'custodian_date'); ?>" required>
+                        <input style="color: #000000;" type="date" class="form-control" name="custodian_date" value="<?php echo get_field_value($item, 'custodian_date'); ?>" readonly>
+                    </div>
+                </div>
+                <!-- <div class="row mb-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Remarks</label>
+                        <textarea style="color: #000000;" class="form-control" name="remarks"><?php echo get_field_value($item, 'remarks'); ?></textarea>
+                    </div>
+                </div> -->
+                <div style="margin-bottom: 10px; margin-top: 25px;"><strong>Edit:</strong></div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label>Remarks</label>
+                        <textarea style="color: #000000;" class="form-control" name="remarks"><?php echo isset($item['remarks']) ? $item['remarks'] : ''; ?></textarea>
                     </div>
                 </div>
 
@@ -943,126 +663,133 @@ require_once('partials/_head.php');
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label class="form-label">Entity Name</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="entity_name" value="<?php echo get_field_value($item, 'entity_name'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="entity_name" value="<?php echo get_field_value($item, 'entity_name'); ?>" readonly>
                         <input type="hidden" name="entity_id" value="<?php echo get_field_value($item, 'entity_id'); ?>">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Fund Cluster</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="fund_cluster" value="<?php echo get_field_value($item, 'fund_cluster'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="fund_cluster" value="<?php echo get_field_value($item, 'fund_cluster'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Supplier</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="supplier_name" value="<?php echo get_field_value($item, 'supplier_name'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="supplier_name" value="<?php echo get_field_value($item, 'supplier_name'); ?>" readonly>
                         <input type="hidden" name="supplier_id" value="<?php echo get_field_value($item, 'supplier_id'); ?>">
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label class="form-label">PO No. / Date</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="po_no_date" value="<?php echo get_field_value($item, 'po_no_date'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="po_no_date" value="<?php echo get_field_value($item, 'po_no_date'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Requisitioning Office/Dept.</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="req_office" value="<?php echo get_field_value($item, 'req_office'); ?>" required>
+                        <input style="color: #000000;" type="text" class="form-control" name="req_office" value="<?php echo get_field_value($item, 'req_office'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Responsibility Center</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="responsibility_center" value="<?php echo get_field_value($item, 'responsibility_center'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="responsibility_center" value="<?php echo get_field_value($item, 'responsibility_center'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label class="form-label">IAR No.</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="iar_no" value="<?php echo get_field_value($item, 'iar_no'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="iar_no" value="<?php echo get_field_value($item, 'iar_no'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">IAR Date</label>
-                        <input style="color: #000000;" type="date" class="form-control" name="iar_date" value="<?php echo get_field_value($item, 'iar_date'); ?>">
+                        <input style="color: #000000;" type="date" class="form-control" name="iar_date" value="<?php echo get_field_value($item, 'iar_date'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Invoice No. / Date</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="invoice_no_date" value="<?php echo get_field_value($item, 'invoice_no_date'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="invoice_no_date" value="<?php echo get_field_value($item, 'invoice_no_date'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label">Stock / Property No.</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="stock_no" value="<?php echo get_field_value($item, 'stock_no'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="stock_no" value="<?php echo get_field_value($item, 'stock_no'); ?>" readonly>
                     </div>
-                    <div class="col-md-3">
+                    <!-- <div class="col-md-3">
                         <label class="form-label">Remarks</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="remarks" value="<?php echo get_field_value($item, 'remarks'); ?>">
-                    </div>
+                        <textarea style="color: #000000;" class="form-control" name="remarks"><?php echo get_field_value($item, 'remarks'); ?></textarea>
+                    </div> -->
                     <div class="col-md-6">
                         <label class="form-label">Item Description</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="item_description" value="<?php echo get_field_value($item, 'item_description'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="item_description" value="<?php echo get_field_value($item, 'item_description'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-2">
                         <label class="form-label">Unit</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="unit" value="<?php echo get_field_value($item, 'unit'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="unit" value="<?php echo get_field_value($item, 'unit'); ?>" readonly>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Qty</label>
-                        <input style="color: #000000;" type="number" class="form-control" name="quantity" value="<?php echo get_field_value($item, 'quantity'); ?>">
+                        <input style="color: #000000;" type="number" class="form-control" name="quantity" value="<?php echo get_field_value($item, 'quantity'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Unit Price</label>
-                        <input style="color: #000000;" type="number" step="0.01" class="form-control" name="unit_price" value="<?php echo get_field_value($item, 'unit_price'); ?>">
+                        <input style="color: #000000;" type="number" step="0.01" class="form-control" name="unit_price" value="<?php echo get_field_value($item, 'unit_price'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Total Price</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="total_price" value="<?php echo get_field_value($item, 'total_price'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="total_price" value="<?php echo get_field_value($item, 'total_price'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label class="form-label">Receiver Name</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="receiver_name" value="<?php echo get_field_value($item, 'receiver_name'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="receiver_name" value="<?php echo get_field_value($item, 'receiver_name'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Teacher's ID</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="teacher_id" value="<?php echo get_field_value($item, 'teacher_id'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="teacher_id" value="<?php echo get_field_value($item, 'teacher_id'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Position</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="position" value="<?php echo get_field_value($item, 'position'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="position" value="<?php echo get_field_value($item, 'position'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label class="form-label">Date Inspected</label>
-                        <input style="color: #000000;" type="date" class="form-control" name="date_inspected" value="<?php echo get_field_value($item, 'date_inspected'); ?>">
+                        <input style="color: #000000;" type="date" class="form-control" name="date_inspected" value="<?php echo get_field_value($item, 'date_inspected'); ?>" readonly>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                         <label class="form-label">Inspection Team</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="inspectors" value="<?php echo get_field_value($item, 'inspectors'); ?>" placeholder="e.g., Joan Savage, Nelson British, Bles Sings">
+                        <input style="color: #000000;" type="text" class="form-control" name="inspectors" value="<?php echo get_field_value($item, 'inspectors'); ?>" placeholder="e.g., Joan Savage, Nelson British, Bles Sings" readonly>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label">Barangay Councilor</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="barangay_councilor" value="<?php echo get_field_value($item, 'barangay_councilor'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="barangay_councilor" value="<?php echo get_field_value($item, 'barangay_councilor'); ?>" readonly>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <label class="form-label">PTA Observer</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="pta_observer" value="<?php echo get_field_value($item, 'pta_observer'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="pta_observer" value="<?php echo get_field_value($item, 'pta_observer'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Date Received</label>
-                        <input style="color: #000000;" type="date" class="form-control" name="date_received" value="<?php echo get_field_value($item, 'date_received'); ?>">
+                        <input style="color: #000000;" type="date" class="form-control" name="date_received" value="<?php echo get_field_value($item, 'date_received'); ?>" readonly>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Property Custodian</label>
-                        <input style="color: #000000;" type="text" class="form-control" name="property_custodian" value="<?php echo get_field_value($item, 'property_custodian'); ?>">
+                        <input style="color: #000000;" type="text" class="form-control" name="property_custodian" value="<?php echo get_field_value($item, 'property_custodian'); ?>" readonly>
+                    </div>
+                </div>
+                <div style="margin-bottom: 10px; margin-top: 25px;"><strong>Edit:</strong></div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label>Remarks</label>
+                        <textarea style="color: #000000;" class="form-control" name="remarks"><?php echo isset($item['remarks']) ? $item['remarks'] : ''; ?></textarea>
                     </div>
                 </div>
               <?php endif; ?>
 
               <div class="text-end mt-3">
                 <a href="track_inventory.php" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary">Update Record</button>
+                <button type="submit" class="btn btn-primary">Update Remarks</button>
               </div>
             </div>
           </form>

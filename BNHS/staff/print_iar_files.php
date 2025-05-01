@@ -5,11 +5,10 @@ require_once __DIR__ . '/assets/vendor/autoload.php';
 
 // Check if IAR ID is provided
 $iar_id = isset($_GET['iar_id']) ? intval($_GET['iar_id']) : 0;
-$item_id = isset($_GET['item_id']) ? intval($_GET['item_id']) : 0;
 
 if (!$iar_id) {
-    echo "No IAR ID provided. Please specify an IAR to print.";
-    exit;
+  echo "No IAR ID provided. Please specify an IAR to print.";
+  exit;
 }
 
 $mpdf = new \Mpdf\Mpdf([
@@ -22,6 +21,37 @@ $mpdf = new \Mpdf\Mpdf([
   'margin_header' => 5,
   'margin_footer' => 5
 ]);
+
+// First, get the IAR number from the specified IAR ID
+$iar_no_query = "SELECT iar_no FROM inspection_acceptance_reports WHERE iar_id = ?";
+$stmt = $mysqli->prepare($iar_no_query);
+$stmt->bind_param("i", $iar_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows == 0) {
+  echo "No IAR found with ID: " . $iar_id;
+  exit;
+}
+
+$iar_no = $result->fetch_object()->iar_no;
+
+// Now get all IAR IDs with the same IAR number
+$iar_ids_query = "SELECT iar_id FROM inspection_acceptance_reports WHERE iar_no = ?";
+$stmt = $mysqli->prepare($iar_ids_query);
+$stmt->bind_param("s", $iar_no);
+$stmt->execute();
+$result = $stmt->get_result();
+
+$iar_ids = [];
+while ($row = $result->fetch_object()) {
+  $iar_ids[] = $row->iar_id;
+}
+
+if (empty($iar_ids)) {
+  echo "No IARs found with IAR number: " . $iar_no;
+  exit;
+}
 
 ob_start();
 ?>
@@ -126,8 +156,11 @@ ob_start();
       </div>
 
       <?php
-      // Modified query to get only the specific IAR
-      $ret = "SELECT 
+      // Create a comma-separated list of IAR IDs to use in the query
+      $iar_ids_list = implode(',', $iar_ids);
+
+      // Get all items for the IAR number
+      $items_query = "SELECT 
         iar.*, 
         e.entity_name, 
         e.fund_cluster, 
@@ -145,32 +178,17 @@ ob_start();
       JOIN suppliers s ON iar.supplier_id = s.supplier_id
       JOIN iar_items ii ON iar.iar_id = ii.iar_id
       JOIN items i ON ii.item_id = i.item_id
-      WHERE iar.iar_id = ?";
-      
-      // If item_id is provided, filter by it as well
-      $params = [$iar_id];
-      if ($item_id) {
-          $ret .= " AND i.item_id = ?";
-          $params[] = $item_id;
+      WHERE iar.iar_id IN ($iar_ids_list)";
+
+      $result = $mysqli->query($items_query);
+
+      if ($result->num_rows == 0) {
+        echo "No items found for IAR number: " . $iar_no;
+        exit;
       }
-      
-      $stmt = $mysqli->prepare($ret);
-      
-      if (count($params) === 1) {
-          $stmt->bind_param("i", $params[0]);
-      } else {
-          $stmt->bind_param("ii", $params[0], $params[1]);
-      }
-      
-      $stmt->execute();
-      $res = $stmt->get_result();
-      
-      if ($res->num_rows == 0) {
-          echo "No IAR found with ID: " . $iar_id;
-          exit;
-      }
-      
-      $header_data = $res->fetch_object();
+
+      // Get the first row for header information
+      $header_data = $result->fetch_object();
       ?>
 
       <table>
@@ -191,7 +209,7 @@ ob_start();
           </td>
           <td class="half" style="border: 1px solid black; padding: 5px;">
             <p><strong>IAR No. :</strong> <?php echo htmlspecialchars($header_data->iar_no ?? ''); ?></p>
-            <p><strong>Date :</strong> <?php echo date('M d, Y', strtotime($header_data->iar_date ?? '')); ?></p>
+            <p><strong>Invoice Date :</strong> <?php echo date('M d, Y', strtotime($header_data->iar_date ?? '')); ?></p>
             <p><strong>Invoice No. :</strong> <?php echo htmlspecialchars($header_data->invoice_no_date ?? ''); ?></p>
           </td>
         </tr>
@@ -204,35 +222,38 @@ ob_start();
               <th class="tds" scope="col">Stock/Property No.</th>
               <th class="tds" style="width: 50%;" scope="col">Description</th>
               <th class="tds" scope="col">Unit</th>
-              <th class="tds" scope="col">Quantity/Cost/Total Amount</th>
+              <th class="tds" scope="col">Quantity</th>
+              <th class="tds" scope="col">Unit Cost</th>
+              <th class="tds" scope="col">Total Amount</th>
             </tr>
           </thead>
           <tbody>
             <?php
-            $res->data_seek(0);
+            // Reset the result to the first row
+            $result->data_seek(0);
             $total_amount = 0;
-            while ($item = $res->fetch_object()) {
+            while ($item = $result->fetch_object()) {
               $total_amount += $item->total_price ?? 0;
             ?>
               <tr>
                 <td class="tds"><?php echo htmlspecialchars($item->stock_no ?? ''); ?></td>
                 <td class="tds"><?php echo htmlspecialchars($item->item_description ?? ''); ?></td>
                 <td class="tds"><?php echo htmlspecialchars($item->unit ?? ''); ?></td>
-                <td class="tds">
-                   ₱<?php echo number_format($item->total_price ?? 0, 2); ?>
-                </td>
+                <td class="tds"><?php echo number_format($item->quantity ?? 0); ?></td>
+                <td class="tds">₱<?php echo number_format($item->unit_price ?? 0, 2); ?></td>
+                <td class="tds">₱<?php echo number_format($item->total_price ?? 0, 2); ?></td>
               </tr>
-              <tr>
-              <td class="tds" ></td>
-              <td class="tds" ></td>
-              <td class="tds" ></td>
-              <td class="tds" ></td>
-            </tr>
             <?php } ?>
-            <!-- Add blank row before total -->
-           
             <tr>
-              <td colspan="3" class="text-end tds"><strong>TOTAL AMOUNT</strong></td>
+              <td class="tds"></td>
+              <td class="tds"></td>
+              <td class="tds"></td>
+              <td class="tds"></td>
+              <td class="tds"></td>
+              <td class="tds"></td>
+            </tr>
+            <tr>
+              <td colspan="5" class="text-end tds"><strong>TOTAL AMOUNT</strong></td>
               <td class="tds">₱<?php echo number_format($total_amount, 2); ?></td>
             </tr>
           </tbody>
@@ -251,8 +272,10 @@ ob_start();
             </p>
             <br>
             <p style="margin-top: 30px;"><strong>Inspection Officer/Inspection Committee</strong></p>
+            <br>
             <p><?php echo htmlspecialchars($header_data->inspectors ?? ''); ?></p>
             <div class="signature-line"></div>
+            <p style="text-align: center;">_________________________________________</p>
             <p class="text-center">Inspection Officer/Inspection Committee</p>
           </td>
 
@@ -271,11 +294,12 @@ ob_start();
             <br>
             <p style="text-align: center;"><?php echo htmlspecialchars($header_data->property_custodian ?? ''); ?></p>
             <div class="signature-line"></div>
+            <p style="text-align: center;">_________________________________________</p>
             <p class="text-center">Supply & Property Custodian</p>
           </td>
         </tr>
       </table>
-      
+
     </div>
   </div>
 </body>
@@ -285,5 +309,5 @@ ob_start();
 <?php
 $html = ob_get_clean();
 $mpdf->WriteHTML($html);
-$mpdf->Output("IAR_Report_" . $header_data->iar_no . "_" . date("Y_m_d") . ".pdf", 'I');
+$mpdf->Output("IAR_Report_" . $iar_no . "_" . date("Y_m_d") . ".pdf", 'I');
 ?>

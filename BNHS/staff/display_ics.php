@@ -126,37 +126,33 @@ require_once('partials/_head.php');
                   <tr>
                     <th scope="col">Entity Name</th>
                     <th scope="col">Fund Cluster</th>
-                    <th scope="col">Article</th>
+                    <!-- <th scope="col">Article</th> -->
                     <th scope="col">ICS No.</th>
-                    <th scope="col">Quantity</th>
-                    <th scope="col">Unit</th>
-                    <th scope="col">Unit Cost</th>
-                    <th scope="col">Total Amount</th>
-                    <th scope="col">Item Description</th>
-                    <th scope="col">Inventory Item No.</th>
-                    <th scope="col">Estimated Useful Life</th>
+                    <!-- <th scope="col">Quantity</th> -->
+                    <!-- <th scope="col">Unit</th> -->
+                    <!-- <th scope="col">Unit Cost</th> -->
+                    <!-- <th scope="col">Total Amount</th> -->
+                    <!-- <th scope="col">Item Description</th> -->
+                    <!-- <th scope="col">Inventory Item No.</th> -->
+                    <!-- <th scope="col">Estimated Useful Life</th> -->
                     <th scope="col">User Name</th>
                     <th scope="col">Position/Office</th>
                     <th scope="col">Date Received(by User)</th>
                     <th scope="col">Property Custodian</th>
                     <th scope="col">Position/Office</th>
                     <th scope="col">Date Received(by Custodian)</th>
-                    <th scope="col">Remarks</th>
+                    <!-- <th scope="col">Remarks</th> -->
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   <?php
-                  $ret = "SELECT ics.ics_id, ii.ics_item_id, i.item_id, e.entity_name, e.fund_cluster, ii.article, ics.ics_no,
-                           ii.quantity, i.unit, i.unit_cost, (ii.quantity * i.unit_cost) as total_amount,
-                           i.item_description, ii.inventory_item_no, i.estimated_useful_life,
+                  $ret = "SELECT ics.ics_id, e.entity_name, e.fund_cluster, ics.ics_no,
                            ics.end_user_name, ics.end_user_position, ics.end_user_date,
-                           ics.custodian_name, ics.custodian_position, ics.custodian_date,
-                           ii.remarks
+                           ics.custodian_name, ics.custodian_position, ics.custodian_date
                          FROM inventory_custodian_slips ics
                          JOIN entities e ON ics.entity_id = e.entity_id
-                         JOIN ics_items ii ON ics.ics_id = ii.ics_id
-                         JOIN items i ON ii.item_id = i.item_id
+                         GROUP BY ics.ics_no
                          ORDER BY ics.created_at DESC";
                   $stmt = $mysqli->prepare($ret);
                   if ($stmt === false) {
@@ -167,41 +163,55 @@ require_once('partials/_head.php');
                   }
                   $res = $stmt->get_result();
                   while ($ics = $res->fetch_object()) {
+                    // Get one item from this ICS to display as an example
+                    $item_query = "SELECT ii.ics_item_id, i.item_id, i.article, ii.quantity, i.unit, 
+                                    i.unit_cost, (ii.quantity * i.unit_cost) as total_amount,
+                                    i.item_description, ii.inventory_item_no, i.estimated_useful_life,
+                                    ii.remarks
+                                  FROM ics_items ii
+                                  JOIN items i ON ii.item_id = i.item_id
+                                  WHERE ii.ics_id = ?
+                                  LIMIT 1";
+                    $item_stmt = $mysqli->prepare($item_query);
+                    $item_stmt->bind_param('i', $ics->ics_id);
+                    $item_stmt->execute();
+                    $item_res = $item_stmt->get_result();
+                    $item = $item_res->fetch_object();
                     ?>
                     <tr>
                       <td><?php echo htmlspecialchars($ics->entity_name); ?></td>
                       <td><?php echo htmlspecialchars($ics->fund_cluster); ?></td>
-                      <td><?php echo htmlspecialchars($ics->article); ?></td>
+                      <!-- <td><?php echo htmlspecialchars($item->article); ?></td> -->
                       <td><?php echo htmlspecialchars($ics->ics_no); ?></td>
-                      <td><?php echo number_format($ics->quantity); ?></td>
-                      <td><?php echo htmlspecialchars($ics->unit); ?></td>
-                      <td>₱<?php echo number_format($ics->unit_cost, 2); ?></td>
-                      <td>₱<?php echo number_format($ics->total_amount, 2); ?></td>
-                      <td><?php echo htmlspecialchars($ics->item_description); ?></td>
-                      <td><?php echo htmlspecialchars($ics->inventory_item_no); ?></td>
-                      <td><?php echo htmlspecialchars($ics->estimated_useful_life); ?></td>
+                      <!-- <td><?php echo number_format($item->quantity); ?></td> -->
+                      <!-- <td><?php echo htmlspecialchars($item->unit); ?></td>
+                      <td>₱<?php echo number_format($item->unit_cost, 2); ?></td>
+                      <td>₱<?php echo number_format($item->total_amount, 2); ?></td>
+                      <td><?php echo htmlspecialchars($item->item_description); ?></td>
+                      <td><?php echo htmlspecialchars($item->inventory_item_no); ?></td>
+                      <td><?php echo htmlspecialchars($item->estimated_useful_life); ?></td> -->
                       <td><?php echo htmlspecialchars($ics->end_user_name); ?></td>
                       <td><?php echo htmlspecialchars($ics->end_user_position); ?></td>
                       <td><?php echo date('M d, Y', strtotime($ics->end_user_date)); ?></td>
                       <td><?php echo htmlspecialchars($ics->custodian_name); ?></td>
                       <td><?php echo htmlspecialchars($ics->custodian_position); ?></td>
                       <td><?php echo date('M d, Y', strtotime($ics->custodian_date)); ?></td>
-                      <td><?php echo htmlspecialchars($ics->remarks); ?></td>
+                      <!-- <td><?php echo htmlspecialchars($item->remarks); ?></td> -->
                       <td>
-                        <a href="display_ics.php?delete_item=<?php echo $ics->ics_item_id; ?>">
+                        <!-- <a href="display_ics.php?delete=<?php echo $ics->ics_id; ?>">
                           <button class="btn btn-sm btn-danger">
                             <i class="fas fa-trash"></i>
-                            Delete
+                            Delete All
                           </button>
-                        </a>
+                        </a> -->
 
-                        <a href="ics_update.php?update_item=<?php echo $ics->ics_id . '&item_id=' . $ics->item_id; ?>">
+                        <a href="ics_update.php?update=<?php echo $ics->ics_id; ?>">
                           <button class="btn btn-sm btn-primary">
                             <i class="fas fa-user-edit"></i>
                             Update
                           </button>
                         </a>
-                        <a href="print_ics_files.php?ics_id=<?php echo $ics->ics_id . '&item_id=' . $ics->item_id . '&ics_item_id=' . $ics->ics_item_id; ?>" target="_blank">
+                        <a href="print_ics_files.php?ics_id=<?php echo $ics->ics_id; ?>" target="_blank">
                           <button class="btn btn-sm btn-info">
                             <i class="fas fa-print"></i>
                             Print File

@@ -323,7 +323,7 @@ require_once('partials/_head.php');
                   
                   <?php foreach ($iar_items as $index => $item): ?>
                   <div class="card mb-4">
-                    <div class="card-header bg-light">
+                    <div class="card-header">
                       <h5>Item #<?php echo $index + 1; ?></h5>
                     </div>
                     <div class="card-body">

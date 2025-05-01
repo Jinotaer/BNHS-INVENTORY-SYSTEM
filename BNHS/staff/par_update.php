@@ -8,178 +8,175 @@ check_login();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-if ($_SERVER['REQUEST_METHOD'] == "POST" && isset($_POST['update'])) {
-  // Check if the required par_id is present
-  if (!isset($_POST['par_id'])) {
-    $err = "Error: Missing PAR ID";
-    header("refresh:1; url=display_par.php");
-    exit;
-  }
-
-  // Get the PAR ID from the form
-  $par_id = (int)$_POST['par_id'];
-
+if ($_SERVER['REQUEST_METHOD'] == "POST") {
   // Sanitize and collect form data
   function sanitize($data)
   {
     return htmlspecialchars(trim($data));
   }
-  
+
   $entity_name = sanitize($_POST['entity_name']);
   $fund_cluster = sanitize($_POST['fund_cluster']);
   $par_no = sanitize($_POST['par_no']);
-  $quantity = (int) $_POST['quantity'];
-  $unit = sanitize($_POST['unit']);
-  $item_description = sanitize($_POST['item_description']);
-  $property_number = sanitize($_POST['property_number']);
   $date_acquired = sanitize($_POST['date_acquired']);
-  $unit_cost = (float) $_POST['unit_cost'];
-  $total_amount = (float) $_POST['total_amount'];
-  $end_user_name = sanitize($_POST['end_user_name']); 
+  $end_user_name = sanitize($_POST['end_user_name']);
   $receiver_position = sanitize($_POST['receiver_position']);
   $receiver_date = sanitize($_POST['receiver_date']);
   $custodian_name = sanitize($_POST['custodian_name']);
   $custodian_position = sanitize($_POST['custodian_position']);
   $custodian_date = sanitize($_POST['custodian_date']);
-  
-  // Get article and remarks values
-  $article = isset($_POST['article']) && is_array($_POST['article']) ? sanitize($_POST['article'][0]) : '';
-  $remarks = isset($_POST['remarks']) ? sanitize($_POST['remarks']) : '';
 
-  // Check if we're updating a specific item
-  if (isset($_POST['item_id'])) {
-    $item_id = (int)$_POST['item_id'];
-    $par_item_id = isset($_POST['par_item_id']) ? (int)$_POST['par_item_id'] : null;
+  // For item details (arrays)
+  $quantity = isset($_POST['quantity']) ? (is_array($_POST['quantity']) ? $_POST['quantity'] : array($_POST['quantity'])) : array();
+  $unit = isset($_POST['unit']) ? (is_array($_POST['unit']) ? $_POST['unit'] : array($_POST['unit'])) : array();
+  $item_description = isset($_POST['item_description']) ? (is_array($_POST['item_description']) ? $_POST['item_description'] : array($_POST['item_description'])) : array();
+  $property_number = isset($_POST['property_number']) ? (is_array($_POST['property_number']) ? $_POST['property_number'] : array($_POST['property_number'])) : array();
+  $unit_cost = isset($_POST['unit_cost']) ? (is_array($_POST['unit_cost']) ? $_POST['unit_cost'] : array($_POST['unit_cost'])) : array();
+  $total_cost = isset($_POST['total_cost']) ? (is_array($_POST['total_cost']) ? $_POST['total_cost'] : array($_POST['total_cost'])) : array();
+  $article = isset($_POST['article']) ? (is_array($_POST['article']) ? $_POST['article'] : array($_POST['article'])) : array();
+  $remarks = isset($_POST['remarks']) ? (is_array($_POST['remarks']) ? $_POST['remarks'] : array($_POST['remarks'])) : array();
+  $item_id = isset($_POST['item_id']) ? (is_array($_POST['item_id']) ? $_POST['item_id'] : array($_POST['item_id'])) : array();
+  $par_item_id = isset($_POST['par_item_id']) ? (is_array($_POST['par_item_id']) ? $_POST['par_item_id'] : array($_POST['par_item_id'])) : array();
 
-    // Add debug info
-    error_log("Processing item update: item_id=$item_id, par_id=$par_id, par_item_id=$par_item_id");
-
+  // Check if we're updating a PAR
+  if (isset($_GET['update'])) {
+    $update = $_GET['update'];
+    
     // Start transaction
-    $mysqli->begin_transaction();
-
-    try {
-      // Update items table
-      $stmt = $mysqli->prepare("UPDATE items SET 
-        item_description = ?, unit = ?, unit_cost = ? 
-        WHERE item_id = ?");
-
-      $stmt->bind_param("ssdi", $item_description, $unit, $unit_cost, $item_id);
-
-      if (!$stmt->execute()) {
-        throw new Exception("Error updating item: " . $stmt->error);
-      }
-
-      // Update par_items - If par_item_id is provided, use it in the WHERE clause
-      if ($par_item_id) {
-        $stmt = $mysqli->prepare("UPDATE par_items SET 
-          quantity = ?, property_number = ?, article = ?, remarks = ?
-          WHERE par_item_id = ?");
-
-        $stmt->bind_param("isssi", $quantity, $property_number, $article, $remarks, $par_item_id);
-        
-        error_log("Updating par_item with par_item_id=$par_item_id");
-      } else {
-        $stmt = $mysqli->prepare("UPDATE par_items SET 
-          quantity = ?, property_number = ?, article = ?, remarks = ?
-          WHERE par_id = ? AND item_id = ?");
-
-        $stmt->bind_param("isssii", $quantity, $property_number, $article, $remarks, $par_id, $item_id);
-        
-        error_log("Updating par_item with par_id=$par_id, item_id=$item_id (no par_item_id)");
-      }
-      
-      if (!$stmt->execute()) {
-        throw new Exception("Error updating PAR items: " . $stmt->error);
-      }
-
-      // Commit transaction
-      $mysqli->commit();
-      $success = "Item Updated Successfully. Item ID: " . $item_id . ", PAR ID: " . $par_id;
-      header("refresh:1; url=display_par.php");
-    } catch (Exception $e) {
-      // Rollback transaction on error
-      $mysqli->rollback();
-      $err = "Error: " . $e->getMessage();
-      error_log("Update error: " . $e->getMessage());
-      header("refresh:1; url=display_par.php");
-    }
-  } else if (isset($_POST['par_id'])) {
-    // Begin transaction
     $mysqli->begin_transaction();
     
     try {
-      // First get or update entity_id
-      $entity_stmt = $mysqli->prepare("SELECT entity_id FROM entities WHERE entity_name = ? AND fund_cluster = ? LIMIT 1");
-      $entity_stmt->bind_param("ss", $entity_name, $fund_cluster);
-      $entity_stmt->execute();
-      $entity_result = $entity_stmt->get_result();
-      
-      if ($entity_result->num_rows > 0) {
-        $entity_row = $entity_result->fetch_assoc();
-        $entity_id = $entity_row['entity_id'];
-      } else {
-        // Create new entity if not found
-        $create_entity = $mysqli->prepare("INSERT INTO entities (entity_name, fund_cluster) VALUES (?, ?)");
-        $create_entity->bind_param("ss", $entity_name, $fund_cluster);
-        $create_entity->execute();
-        $entity_id = $mysqli->insert_id;
-      }
-      
-      // Update the PAR header information
-      $par_stmt = $mysqli->prepare("UPDATE property_acknowledgment_receipts SET 
-        entity_id = ?, par_no = ?, date_acquired = ?, end_user_name = ?, 
-        receiver_position = ?, receiver_date = ?, custodian_name = ?, 
-        custodian_position = ?, custodian_date = ?
-        WHERE par_id = ?");
-
-      if ($par_stmt === false) {
-        throw new Exception("MySQL prepare failed for PAR update: " . $mysqli->error);
-      }
-
-      $par_stmt->bind_param(
-        "issssssssi",
-        $entity_id,
-        $par_no,
-        $date_acquired,
-        $end_user_name,
-        $receiver_position,
-        $receiver_date,
-        $custodian_name,
-        $custodian_position,
-        $custodian_date,
-        $par_id
-      );
-      $par_stmt->execute();
-      
-      // Get all item_ids from par_items for this PAR
-      $stmt = $mysqli->prepare("SELECT item_id FROM par_items WHERE par_id = ?");
-      $stmt->bind_param("i", $par_id);
+      // First, get or create entity
+      $stmt = $mysqli->prepare("SELECT entity_id FROM entities WHERE entity_name = ? AND fund_cluster = ?");
+      $stmt->bind_param("ss", $entity_name, $fund_cluster);
       $stmt->execute();
       $result = $stmt->get_result();
       
-      // Update each item
-      while ($row = $result->fetch_object()) {
-        $item_id = $row->item_id;
-        
-        // Update item details
-        $update_item = $mysqli->prepare("UPDATE items SET item_description = ?, unit = ?, unit_cost = ? WHERE item_id = ?");
-        $update_item->bind_param("ssdi", $item_description, $unit, $unit_cost, $item_id);
-        $update_item->execute();
-        
-        // Update par_item
-        $update_par_item = $mysqli->prepare("UPDATE par_items SET 
-          quantity = ?, property_number = ?, article = ?, remarks = ?
-          WHERE par_id = ? AND item_id = ?");
-        $update_par_item->bind_param("isssii", $quantity, $property_number, $article, $remarks, $par_id, $item_id);
-        $update_par_item->execute();
+      if ($result->num_rows > 0) {
+        $entity_id = $result->fetch_object()->entity_id;
+      } else {
+        $stmt = $mysqli->prepare("INSERT INTO entities (entity_name, fund_cluster) VALUES (?, ?)");
+        $stmt->bind_param("ss", $entity_name, $fund_cluster);
+        $stmt->execute();
+        $entity_id = $mysqli->insert_id;
       }
-      
+
+      // Debug the update query parameter types and values
+      error_log("Updating PAR with ID: $update");
+      error_log("entity_id: $entity_id (type: " . gettype($entity_id) . ")");
+      error_log("par_no: $par_no (type: " . gettype($par_no) . ")");
+      error_log("date_acquired: $date_acquired (type: " . gettype($date_acquired) . ")");
+      error_log("end_user_name: $end_user_name (type: " . gettype($end_user_name) . ")");
+      error_log("receiver_position: $receiver_position (type: " . gettype($receiver_position) . ")");
+      error_log("receiver_date: $receiver_date (type: " . gettype($receiver_date) . ")");
+      error_log("custodian_name: $custodian_name (type: " . gettype($custodian_name) . ")");
+      error_log("custodian_position: $custodian_position (type: " . gettype($custodian_position) . ")");
+      error_log("custodian_date: $custodian_date (type: " . gettype($custodian_date) . ")");
+
+      // Convert entity_id to integer to ensure proper type
+      $entity_id = (int)$entity_id;
+      $update = (int)$update;
+
+      // Update PAR header information - simplify the query
+      $stmt = $mysqli->prepare("UPDATE property_acknowledgment_receipts SET 
+        entity_id = ?,
+        par_no = ?,
+        date_acquired = ?,
+        end_user_name = ?,
+        receiver_position = ?,
+        receiver_date = ?,
+        custodian_name = ?,
+        custodian_position = ?,
+        custodian_date = ?
+        WHERE par_id = ?");
+
+      if ($stmt === false) {
+        throw new Exception("Failed to prepare statement: " . $mysqli->error);
+      }
+
+      $result = $stmt->bind_param(
+        "issssssssi",
+        $entity_id, 
+        $par_no, 
+        $date_acquired, 
+        $end_user_name, 
+        $receiver_position, 
+        $receiver_date, 
+        $custodian_name, 
+        $custodian_position, 
+        $custodian_date,
+        $update
+      );
+
+      // Execute the statement and check for errors
+      if (!$stmt->execute()) {
+        throw new Exception("Error updating PAR: " . $stmt->error);
+      }
+
+      // Update each item
+      for ($i = 0; $i < count($item_id); $i++) {
+        // Calculate total price
+        $qty = (int)$quantity[$i];
+        $price = (float)$unit_cost[$i];
+        $total = $qty * $price;
+        
+        // Ensure proper types for IDs
+        $item_id_val = (int)$item_id[$i];
+        $par_item_id_val = (int)$par_item_id[$i];
+        
+        // Update items table
+        $item_stmt = $mysqli->prepare("UPDATE items SET 
+          item_description = ?,
+          unit = ?,
+          unit_cost = ?
+          WHERE item_id = ?");
+
+        if ($item_stmt === false) {
+          throw new Exception("Failed to prepare item statement: " . $mysqli->error);
+        }
+
+        $result = $item_stmt->bind_param("ssdi", 
+          $item_description[$i], 
+          $unit[$i], 
+          $unit_cost[$i], 
+          $item_id_val
+        );
+        
+        if (!$item_stmt->execute()) {
+          throw new Exception("Error updating item: " . $item_stmt->error);
+        }
+
+        // Update par_items
+        $par_item_stmt = $mysqli->prepare("UPDATE par_items SET 
+          quantity = ?,
+          property_number = ?,
+          article = ?,
+          remarks = ?
+          WHERE par_item_id = ?");
+
+        if ($par_item_stmt === false) {
+          throw new Exception("Failed to prepare par_item statement: " . $mysqli->error);
+        }
+
+        $result = $par_item_stmt->bind_param("isssi", 
+          $qty, 
+          $property_number[$i], 
+          $article[$i], 
+          $remarks[$i], 
+          $par_item_id_val
+        );
+        
+        if (!$par_item_stmt->execute()) {
+          throw new Exception("Error updating PAR items: " . $par_item_stmt->error);
+        }
+      }
+
       // Commit transaction
       $mysqli->commit();
       $success = "Property Acknowledgment Receipt Updated Successfully";
       header("refresh:1; url=display_par.php");
     } catch (Exception $e) {
-      // Roll back on error
+      // Rollback transaction on error
       $mysqli->rollback();
       $err = "Error: " . $e->getMessage();
       header("refresh:1; url=display_par.php");
@@ -192,215 +189,255 @@ require_once('partials/_head.php');
 
 <body>
   <!-- Sidenav -->
-  <?php
-  require_once('partials/_sidebar.php');
-  ?>
+  <?php require_once('partials/_sidebar.php'); ?>
+
   <!-- Main content -->
   <div class="main-content">
     <!-- Top navbar -->
+    <?php require_once('partials/_topnav.php'); ?>
+
     <?php
-    require_once('partials/_topnav.php');
-    
-    // Check if we're updating a specific item
-    if (isset($_GET['update_item']) && isset($_GET['item_id'])) {
-      $par_id = $_GET['update_item'];
-      $item_id = $_GET['item_id'];
-      $par_item_id = isset($_GET['par_item_id']) ? $_GET['par_item_id'] : null;
-
-      // Add debug logging
-      error_log("Loading item update form: par_id=$par_id, item_id=$item_id, par_item_id=$par_item_id");
-
-      $ret = "SELECT p.*, e.entity_name, e.fund_cluster, pi.quantity, pi.property_number, pi.article, pi.remarks, pi.par_item_id, i.item_id, i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount
-            FROM property_acknowledgment_receipts p
-            JOIN entities e ON p.entity_id = e.entity_id
-            JOIN par_items pi ON p.par_id = pi.par_id
-            JOIN items i ON pi.item_id = i.item_id
-            WHERE p.par_id = ? AND i.item_id = ?";
-      $stmt = $mysqli->prepare($ret);
-      $stmt->bind_param("ii", $par_id, $item_id);
-    } else {
+    if (isset($_GET['update'])) {
       $update = $_GET['update'];
-      $ret = "SELECT p.*, e.entity_name, e.fund_cluster, pi.quantity, pi.property_number, pi.article, pi.remarks, pi.par_item_id, i.item_id, i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount
-            FROM property_acknowledgment_receipts p
-            JOIN entities e ON p.entity_id = e.entity_id
-            JOIN par_items pi ON p.par_id = pi.par_id
-            JOIN items i ON pi.item_id = i.item_id
-            WHERE p.par_id = ?";
-      $stmt = $mysqli->prepare($ret);
+
+      // First get the PAR number from the specified PAR ID
+      $par_no_query = "SELECT par_no FROM property_acknowledgment_receipts WHERE par_id = ?";
+      $stmt = $mysqli->prepare($par_no_query);
       $stmt->bind_param("i", $update);
+      $stmt->execute();
+      $result = $stmt->get_result();
+
+      if ($result->num_rows == 0) {
+        echo "No PAR found with ID: " . $update;
+        exit;
+      }
+
+      $par_no = $result->fetch_object()->par_no;
+
+      // Get basic PAR info for the form header
+      $par_query = "SELECT 
+        par.*, 
+        e.entity_name, 
+        e.fund_cluster
+      FROM property_acknowledgment_receipts par
+      JOIN entities e ON par.entity_id = e.entity_id
+      WHERE par.par_id = ?";
+
+      $stmt = $mysqli->prepare($par_query);
+      $stmt->bind_param("i", $update);
+      $stmt->execute();
+      $par_result = $stmt->get_result();
+      $par_info = $par_result->fetch_object();
+
+      // Then get all items for this PAR
+      $items_query = "SELECT 
+        i.item_id,
+        i.item_description,
+        i.unit,
+        i.unit_cost,
+        pi.par_item_id,
+        pi.quantity,
+        pi.property_number,
+        pi.article,
+        pi.remarks
+      FROM par_items pi
+      JOIN items i ON pi.item_id = i.item_id
+      WHERE pi.par_id = ?";
+
+      $stmt = $mysqli->prepare($items_query);
+      $stmt->bind_param("i", $update);
+      $stmt->execute();
+      $items_result = $stmt->get_result();
+      $par_items = $items_result->fetch_all(MYSQLI_ASSOC);
     }
-    
-    $stmt->execute();
-    $res = $stmt->get_result();
-    while ($par = $res->fetch_object()) {
     ?>
-      <!-- Header -->
-      <div style="background-image: url(assets/img/theme/restro00.jpg); background-size: cover;"
-        class="header  pb-8 pt-5 pt-md-8">
-        <span class="mask bg-gradient-dark opacity-8"></span>
-        <div class="container-fluid">
-          <div class="header-body">
-          </div>
-        </div>
-      </div>
-      <!-- Page content -->
-      <div class="container-fluid mt--8">
-        <!-- Table -->
-        <div class="row">
-          <div class="col">
-            <div class="card shadow">
 
-              <div class="card-body">
-                <form method="POST" action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>" class="border border-light p-4 rounded">
-                  <div class="container mt-4">
-                    <?php if (isset($_GET['update_item']) && isset($_GET['item_id'])): ?>
-                      <h2 class="text-center mb-4 text-uppercase">Update Single Item</h2>
-                    <?php else: ?>
-                      <h2 class="text-center mb-4 text-uppercase">Update Property Acknowledgment Receipt</h2>
-                    <?php endif; ?>
-                    
-                    <!-- Entity Info -->
-                    <div class="row mt-3 mb-3">
-                      <div class="col-md-4">
-                        <label>Entity Name</label>
-                        <input style="color: #000000;" type="text" class="form-control" value="<?php echo $par->entity_name; ?>" name="entity_name" readonly>
-                      </div>
-                      <div class="col-md-4">
-                        <label>Fund Cluster</label>
-                        <input style="color: #000000;" type="text" class="form-control" value="<?php echo $par->fund_cluster; ?>" name="fund_cluster" readonly>
-                      </div>
-                      <div class="col-md-4">
-                        <label>PAR No.</label>
-                        <input style="color: #000000;" type="text" class="form-control" value="<?php echo $par->par_no; ?>" name="par_no" readonly>
-                      </div>
+    <!-- Header -->
+    <div style="background-image: url(assets/img/theme/bnhsfront.jpg); background-size: cover;" class="header pb-8 pt-5 pt-md-8">
+      <span class="mask bg-gradient-dark opacity-8"></span>
+    </div>
+
+    <!-- Page content -->
+    <div class="container-fluid mt--8">
+      <div class="row">
+        <div class="col">
+          <div class="card shadow">
+            <div class="card-body">
+
+              <form method="POST" action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI']); ?>" class="border border-light p-4 rounded">
+                <div class="container mt-4">
+                  <h2 class="text-center mb-4 text-uppercase">Update Property Acknowledgment Receipt</h2>
+
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Entity Name</label>
+                      <input style="color: #000000;" type="text" class="form-control" name="entity_name" value="<?php echo htmlspecialchars($par_info->entity_name); ?>" readonly>
                     </div>
-
-                    <!-- Receiver Section -->
-                    <div class="sub-section receiver-section">Receiver</div>
-                    <div class="row mb-3">
-                      <div class="col-md-4">
-                        <label>End User Name</label>
-                        <input style="color: #000000;" type="text" class="form-control" value="<?php echo $par->end_user_name; ?>" name="end_user_name" readonly>
-                      </div>
-                      <div class="col-md-4">
-                        <label>Position/Office</label>
-                        <input style="color: #000000;" type="text" class="form-control" value="<?php echo $par->receiver_position; ?>" name="receiver_position" readonly>
-                      </div>
-                      <div class="col-md-4">
-                        <label>Date</label>
-                        <input style="color: #000000;" type="date" class="form-control" value="<?php echo $par->receiver_date; ?>" name="receiver_date" readonly>
-                      </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Fund Cluster</label>
+                      <input style="color: #000000;" type="text" class="form-control" name="fund_cluster" value="<?php echo htmlspecialchars($par_info->fund_cluster); ?>" readonly>
                     </div>
+                  </div>
 
-                    <!-- Issue Section -->
-                    <div class="sub-section issue-section">Issue</div>
-                    <div class="row mb-3">
-                      <div class="col-md-4">
-                        <label>Property Custodian Name</label>
-                        <input style="color: #000000;" type="text" class="form-control" value="<?php echo $par->custodian_name; ?>" name="custodian_name" readonly>
-                      </div>
-                      <div class="col-md-4">
-                        <label>Position/Office</label>
-                        <input style="color: #000000;" type="text" class="form-control" value="<?php echo $par->custodian_position; ?>" name="custodian_position" readonly>
-                      </div>
-                      <div class="col-md-4">
-                        <label>Date</label>
-                        <input style="color: #000000;" type="date" class="form-control" value="<?php echo $par->custodian_date; ?>" name="custodian_date" readonly>
-                      </div>
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label class="form-label">PAR Number</label>
+                      <input style="color: #000000;" type="text" class="form-control" name="par_no" value="<?php echo htmlspecialchars($par_info->par_no); ?>" readonly>
                     </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Date Acquired</label>
+                      <input style="color: #000000;" type="date" class="form-control" name="date_acquired" value="<?php echo htmlspecialchars($par_info->date_acquired); ?>" readonly>
+                    </div>
+                  </div>
 
-                    <!-- Edit Item Section -->
-                    <div style="margin-bottom: 20px;"><strong>Edit Item:</strong></div>
-                    <div class="row mb-3">
+                  <div class="row mb-3">
                     <div class="col-md-4">
-                        <label>Stock / Property No.</label>
-                        <input style="color: #000000;" type="text" class="form-control" value="<?php echo $par->property_number; ?>" name="property_number">
-                      </div>
-                      <div class="col-md-4">
-                        <label>Description</label>
-                        <input style="color: #000000;" type="text" class="form-control" value="<?php echo $par->item_description; ?>" name="item_description">
-                      </div>
-                      <div class="col-md-2">
-                        <label>Unit</label>
-                        <select style="color: #000000;" class="form-control" name="unit">
-                          <option value="">Select Unit</option>
-                          <option value="box" <?php echo ($par->unit == 'box') ? 'selected' : ''; ?>>box</option>
-                          <option value="pieces" <?php echo ($par->unit == 'pieces') ? 'selected' : ''; ?>>pieces</option>
-                        </select>
-                      </div>
-                      <div class="col-md-2">
-                        <label>Quantity</label>
-                        <input style="color: #000000;" type="number" class="form-control" value="<?php echo $par->quantity; ?>" name="quantity">
-                      </div>
-                    
+                      <label class="form-label">End User Name</label>
+                      <input style="color: #000000;" type="text" class="form-control" name="end_user_name" value="<?php echo htmlspecialchars($par_info->end_user_name); ?>" readonly>
                     </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Position/Office</label>
+                      <input style="color: #000000;" type="text" class="form-control" name="receiver_position" value="<?php echo htmlspecialchars($par_info->receiver_position); ?>" readonly>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Date</label>
+                      <input style="color: #000000;" type="date" class="form-control" name="receiver_date" value="<?php echo htmlspecialchars($par_info->receiver_date); ?>" readonly>
+                    </div>
+                  </div>
 
-                    <div class="row mb-3">
-                      <div class="col-md-4">
-                        <label>Date Acquired</label>
-                        <input style="color: #000000;" type="date" class="form-control" value="<?php echo $par->date_acquired; ?>" name="date_acquired">
-                      </div>
-                      <div class="col-md-4">
-                        <label>Unit Cost</label>
-                        <input style="color: #000000;" type="text" class="form-control" value="<?php echo $par->unit_cost; ?>" name="unit_cost">
-                      </div>
-                      <div class="col-md-4">
-                        <label class="form-label">Total Amount</label>
-                        <input style="color: #000000; background-color: white;" type="text" class="form-control"
-                           value="<?php echo $par->total_amount; ?>" name="total_amount" readonly>
-                      </div>
+                  <div class="row mb-3">
+                    <div class="col-md-4">
+                      <label class="form-label">Property Custodian Name</label>
+                      <input style="color: #000000;" type="text" class="form-control" name="custodian_name" value="<?php echo htmlspecialchars($par_info->custodian_name); ?>" readonly>
                     </div>
-                    <div class="row mb-3">
-                    <div class="col-md-6">
-                      <label class="form-label">Article</label>
-                      <select name="article[]" class="form-control" style="color: #000000;">
+                    <div class="col-md-4">
+                      <label class="form-label">Position/Office</label>
+                      <input style="color: #000000;" type="text" class="form-control" name="custodian_position" value="<?php echo htmlspecialchars($par_info->custodian_position); ?>" readonly>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Date</label>
+                      <input style="color: #000000;" type="date" class="form-control" name="custodian_date" value="<?php echo htmlspecialchars($par_info->custodian_date); ?>" readonly>
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom: 20px;"><strong>Edit Items:</strong></div>
+
+                  <?php foreach ($par_items as $index => $item): ?>
+                    <div class="card mb-4">
+                      <div class="card-header bg-light">
+                        <h5>Item #<?php echo $index + 1; ?></h5>
+                      </div>
+                      <div class="card-body">
+                        <input type="hidden" name="item_id[]" value="<?php echo $item['item_id']; ?>">
+                        <input type="hidden" name="par_item_id[]" value="<?php echo $item['par_item_id']; ?>">
+
+                        <div class="row mb-3">
+                          <div class="col-md-4">
+                            <label class="form-label">Item Description</label>
+                            <input style="color: #000000;" type="text" class="form-control" name="item_description[]" value="<?php echo htmlspecialchars($item['item_description']); ?>">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">Article</label>
+                            <select style="color: #000000;" class="form-control" name="article[]">
                               <option value="">Select Article</option>
-                              <option value="BUILDING" <?php echo (isset($par->article) && $par->article == 'BUILDING') ? 'selected' : ''; ?>>BUILDING</option>
-                              <option value="LAND" <?php echo (isset($par->article) && $par->article == 'LAND') ? 'selected' : ''; ?>>LAND</option>
-                              <option value="IT EQUIPMENT" <?php echo (isset($par->article) && $par->article == 'IT EQUIPMENT') ? 'selected' : ''; ?>>IT EQUIPMENT</option>
-                              <option value="SCHOOL BUILDING" <?php echo (isset($par->article) && $par->article == 'SCHOOL BUILDING') ? 'selected' : ''; ?>>SCHOOL BUILDING</option>
+                              <option value="BUILDING" <?php echo ($item['article'] == 'BUILDING') ? 'selected' : ''; ?>>BUILDING</option>
+                              <option value="LAND" <?php echo ($item['article'] == 'LAND') ? 'selected' : ''; ?>>LAND</option>
+                              <option value="IT EQUIPMENT" <?php echo ($item['article'] == 'IT EQUIPMENT') ? 'selected' : ''; ?>>IT EQUIPMENT</option>
+                              <option value="SCHOOL BUILDING" <?php echo ($item['article'] == 'SCHOOL BUILDING') ? 'selected' : ''; ?>>SCHOOL BUILDING</option>
+                              <option value="EQUIPMENT" <?php echo ($item['article'] == 'EQUIPMENT') ? 'selected' : ''; ?>>EQUIPMENT</option>
+                              <option value="FURNITURE" <?php echo ($item['article'] == 'FURNITURE') ? 'selected' : ''; ?>>FURNITURE</option>
                             </select>
-                    </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Remarks</label>
-                      <input type="text" class="form-control" name="remarks" style="color: #000000;" value="<?php echo isset($par->remarks) ? htmlspecialchars($par->remarks) : ''; ?>">
-                    </div>
-                  </div>
-                    <!-- Hidden inputs to store the IDs -->
-                    <?php if (isset($_GET['update_item']) && isset($_GET['item_id'])): ?>
-                      <input type="hidden" name="par_id" value="<?php echo $_GET['update_item']; ?>">
-                      <input type="hidden" name="item_id" value="<?php echo $_GET['item_id']; ?>">
-                      <?php if (isset($_GET['par_item_id'])): ?>
-                      <input type="hidden" name="par_item_id" value="<?php echo $_GET['par_item_id']; ?>">
-                      <?php elseif (isset($par->par_item_id)): ?>
-                      <input type="hidden" name="par_item_id" value="<?php echo $par->par_item_id; ?>">
-                      <?php endif; ?>
-                    <?php else: ?>
-                      <input type="hidden" name="par_id" value="<?php echo $_GET['update']; ?>">
-                    <?php endif; ?>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label">Property Number</label>
+                            <input style="color: #000000;" type="text" class="form-control" name="property_number[]" value="<?php echo htmlspecialchars($item['property_number']); ?>">
+                          </div>
+                        </div>
 
-                    <!-- Debug info hidden field (for development purposes) -->
-                    <input type="hidden" name="debug_info" value="par_item_id: <?php echo isset($par->par_item_id) ? $par->par_item_id : 'not set'; ?>">
+                        <div class="row mb-3">
+                          <div class="col-md-3">
+                            <label class="form-label">Quantity</label>
+                            <input style="color: #000000;" type="number" class="form-control quantity" name="quantity[]" value="<?php echo $item['quantity']; ?>">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label">Unit</label>
+                            <select style="color: #000000;" class="form-control" name="unit[]">
+                              <option value="">Select Unit</option>
+                              <option value="box" <?php echo ($item['unit'] == 'box') ? 'selected' : ''; ?>>box</option>
+                              <option value="pieces" <?php echo ($item['unit'] == 'pieces') ? 'selected' : ''; ?>>pieces</option>
+                              <option value="unit" <?php echo ($item['unit'] == 'unit') ? 'selected' : ''; ?>>unit</option>
+                            </select>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label">Unit Cost</label>
+                            <input style="color: #000000;" type="number" step="0.01" class="form-control unit-price" name="unit_cost[]" value="<?php echo $item['unit_cost']; ?>">
+                          </div>
 
-                    <div class="text-end mt-3">
-                      <button type="submit" name="update" class="btn btn-primary">Update</button>
+                          <div class="col-md-3">
+                            <label class="form-label">Total Cost</label>
+                            <input style="color: #000000;" type="text" class="form-control total-price" name="total_cost[]" value="<?php echo number_format($item['quantity'] * $item['unit_cost'], 2); ?>" readonly>
+                          </div>
+                        </div>
+                        <div class="row">
+                          <div class="col-md-6">
+                            <label class="form-label">Remarks</label>
+                            <input style="color: #000000;" type="text" class="form-control" name="remarks[]" value="<?php echo htmlspecialchars($item['remarks']); ?>">
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                  <?php endforeach; ?>
+
+                  <div class="text-end mt-3">
+                    <button type="submit" name="update" class="btn btn-primary">Update Items</button>
                   </div>
-                </form>
-              </div>
+                </div>
+              </form>
             </div>
           </div>
         </div>
-        <!-- Footer -->
-        <?php
-        require_once('partials/_mainfooter.php');
-        ?>
       </div>
-    <?php } ?>
+      <!-- Footer -->
+      <?php require_once('partials/_mainfooter.php'); ?>
+    </div>
   </div>
+
   <!-- Argon Scripts -->
-  <?php
-  require_once('partials/_scripts.php');
-  ?>
+  <?php require_once('partials/_scripts.php'); ?>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Add event listeners for all quantity and unit price inputs
+      const forms = document.querySelectorAll('form');
+
+      forms.forEach(form => {
+        const qtyInputs = form.querySelectorAll('.quantity');
+        const priceInputs = form.querySelectorAll('.unit-price');
+        const totalInputs = form.querySelectorAll('.total-price');
+
+        // Function to update total price
+        function updateTotal(index) {
+          const qty = parseFloat(qtyInputs[index].value) || 0;
+          const price = parseFloat(priceInputs[index].value) || 0;
+          totalInputs[index].value = (qty * price).toFixed(2);
+        }
+
+        // Add event listeners to all quantity and price inputs
+        qtyInputs.forEach((input, index) => {
+          input.addEventListener('input', () => updateTotal(index));
+        });
+
+        priceInputs.forEach((input, index) => {
+          input.addEventListener('input', () => updateTotal(index));
+        });
+
+        // Initialize all totals
+        for (let i = 0; i < qtyInputs.length; i++) {
+          updateTotal(i);
+        }
+      });
+    });
+  </script>
 </body>
+
 </html>

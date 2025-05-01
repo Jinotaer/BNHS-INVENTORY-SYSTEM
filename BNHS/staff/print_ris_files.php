@@ -12,6 +12,7 @@ if (!$ris_id) {
     exit;
 }
 
+// Create mPDF object with specific settings for better display
 $mpdf = new \Mpdf\Mpdf([
     'mode' => 'utf-8',
     'format' => 'A4',
@@ -20,12 +21,48 @@ $mpdf = new \Mpdf\Mpdf([
     'margin_top' => 10,
     'margin_bottom' => 10,
     'margin_header' => 5,
-    'margin_footer' => 5
+    'margin_footer' => 5,
+    'debug' => false,
+    'tempDir' => sys_get_temp_dir()
 ]);
 
 ob_start(); // Start output buffering
 
-// Get specific RIS record
+// First, get the RIS number from the specified RIS ID
+$ris_no_query = "SELECT ris_no FROM requisition_and_issue_slips WHERE ris_id = ?";
+$stmt = $mysqli->prepare($ris_no_query);
+$stmt->bind_param("i", $ris_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows == 0) {
+    echo "No RIS found with ID: " . $ris_id;
+    exit;
+}
+
+$ris_no = $result->fetch_object()->ris_no;
+
+// Now get all RIS IDs with the same RIS number
+$ris_ids_query = "SELECT ris_id FROM requisition_and_issue_slips WHERE ris_no = ?";
+$stmt = $mysqli->prepare($ris_ids_query);
+$stmt->bind_param("s", $ris_no);
+$stmt->execute();
+$result = $stmt->get_result();
+
+$ris_ids = [];
+while ($row = $result->fetch_object()) {
+    $ris_ids[] = $row->ris_id;
+}
+
+if (empty($ris_ids)) {
+    echo "No RIS found with RIS number: " . $ris_no;
+    exit;
+}
+
+// Create a comma-separated list of RIS IDs to use in the query
+$ris_ids_list = implode(',', $ris_ids);
+
+// Get specific RIS record for header information
 $ret = "SELECT r.*, e.entity_name, e.fund_cluster 
       FROM requisition_and_issue_slips r
       JOIN entities e ON r.entity_id = e.entity_id
@@ -187,34 +224,27 @@ $ris = $res->fetch_object();
                     </thead>
                     <tbody>
                         <?php
-                        // Get the RIS items with optional item filter
-                        $items_query = "SELECT ri.*, i.stock_no, i.unit, i.item_description FROM ris_items ri 
+                        // Get all items for all RIS IDs with the same RIS number
+                        $items_query = "SELECT ri.*, i.stock_no, i.unit, i.item_description, 
+                                             COALESCE(ri.stock_available, 'No') as stock_status 
+                                      FROM ris_items ri 
                                       JOIN items i ON ri.item_id = i.item_id
-                                      WHERE ri.ris_id = ?";
+                                      WHERE ri.ris_id IN ($ris_ids_list)";
 
-                        $params = [$ris_id];
-
-                        // If item_id is provided, filter by it as well
                         if ($item_id) {
-                            $items_query .= " AND ri.item_id = ?";
-                            $params[] = $item_id;
+                            $items_query .= " AND i.item_id = $item_id";
                         }
 
-                        $items_stmt = $mysqli->prepare($items_query);
+                        $items_res = $mysqli->query($items_query);
 
-                        if (count($params) === 1) {
-                            $items_stmt->bind_param("i", $params[0]);
-                        } else {
-                            $items_stmt->bind_param("ii", $params[0], $params[1]);
+                        if ($items_res->num_rows == 0) {
+                            echo "<tr><td colspan='8'>No items found for this RIS</td></tr>";
                         }
-
-                        $items_stmt->execute();
-                        $items_res = $items_stmt->get_result();
 
                         while ($item = $items_res->fetch_object()) {
-                            // Determine Yes/No for stock available
-                            $yes_mark = ($item->stock_available > 0) ? "✓" : "";
-                            $no_mark = ($item->stock_available <= 0) ? "✓" : "";
+                            // Check if stock_available is 'Yes' or 'No'
+                            $yes_mark = ($item->stock_status == 'Yes') ? '<strong style="font-size: 14px;">✓</strong>' : "";
+                            $no_mark = ($item->stock_status == 'No') ? '<strong style="font-size: 14px;">✓</strong>' : "";
                         ?>
                             <tr>
                                 <td class="tds"><?php echo htmlspecialchars($item->stock_no ?? ''); ?></td>
@@ -226,17 +256,18 @@ $ris = $res->fetch_object();
                                 <td class="tds"><?php echo htmlspecialchars($item->issued_qty ?? ''); ?></td>
                                 <td class="tds"><?php echo htmlspecialchars($item->remarks ?? ''); ?></td>
                             </tr>
-                            <tr>
-                                <td class="tds"></td>
-                                <td class="tds"></td>
-                                <td class="tds"></td>
-                                <td class="tds"></td>
-                                <td class="tds"></td>
-                                <td class="tds"></td>
-                                <td class="tds"></td>
-                                <td class="tds"></td>
-                            </tr>
                         <?php } ?>
+                        <!-- Add empty row for visual spacing -->
+                        <tr>
+                            <td class="tds"></td>
+                            <td class="tds"></td>
+                            <td class="tds"></td>
+                            <td class="tds"></td>
+                            <td class="tds"></td>
+                            <td class="tds"></td>
+                            <td class="tds"></td>
+                            <td class="tds"></td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

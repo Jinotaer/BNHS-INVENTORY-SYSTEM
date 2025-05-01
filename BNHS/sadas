@@ -2147,3 +2147,13 @@ require_once('partials/_head.php');
 </body>
 
 </html>
+<td class="tds">
+                   ₱<?php echo number_format($item->total_price ?? 0, 2); ?>
+                </td>
+              </tr>
+              <tr>
+              <td class="tds" ></td>
+              <td class="tds" ></td>
+              <td class="tds" ></td>
+              <td class="tds" ></td>
+            </tr>

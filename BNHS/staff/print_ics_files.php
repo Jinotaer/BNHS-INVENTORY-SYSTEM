@@ -13,6 +13,23 @@ if (!$ics_id) {
     exit;
 }
 
+// Get the ICS number to find all related items
+$getIcsNoQuery = "SELECT ics.ics_no 
+                  FROM inventory_custodian_slips ics
+                  WHERE ics.ics_id = ?";
+$stmtIcsNo = $mysqli->prepare($getIcsNoQuery);
+$stmtIcsNo->bind_param("i", $ics_id);
+$stmtIcsNo->execute();
+$resultIcsNo = $stmtIcsNo->get_result();
+$icsNoRow = $resultIcsNo->fetch_object();
+
+if (!$icsNoRow) {
+    echo "ICS record not found.";
+    exit;
+}
+
+$ics_no = $icsNoRow->ics_no;
+
 $mpdf = new \Mpdf\Mpdf([
     'mode' => 'utf-8',
     'format' => 'A4',
@@ -115,7 +132,7 @@ ob_start(); // Start output buffering
             </div>
 
             <?php
-            // Modified query to get only the specific ICS and item
+            // Modified query to get all items with the same ICS number
             $ret = "SELECT ics.ics_id, e.entity_name, e.fund_cluster, ics.ics_no,
                     ii.quantity, i.unit, i.unit_cost, (ii.quantity * i.unit_cost) as total_amount,
                     i.item_description, ii.inventory_item_no, i.estimated_useful_life,
@@ -126,16 +143,15 @@ ob_start(); // Start output buffering
                   JOIN entities e ON ics.entity_id = e.entity_id
                   JOIN ics_items ii ON ics.ics_id = ii.ics_id
                   JOIN items i ON ii.item_id = i.item_id
-                  WHERE ics.ics_id = ?";
+                  WHERE ics.ics_no = ?";
 
-            // If item_id is provided, filter by it as well
-            $params = [$ics_id];
+            // If specific item filters are provided, apply them
+            $params = [$ics_no];
             if ($item_id) {
                 $ret .= " AND i.item_id = ?";
                 $params[] = $item_id;
             }
 
-            // If ics_item_id is provided, filter by it as well
             if ($ics_item_id) {
                 $ret .= " AND ii.ics_item_id = ?";
                 $params[] = $ics_item_id;
@@ -144,21 +160,22 @@ ob_start(); // Start output buffering
             $stmt = $mysqli->prepare($ret);
 
             if (count($params) === 1) {
-                $stmt->bind_param("i", $params[0]);
+                $stmt->bind_param("s", $params[0]);
             } elseif (count($params) === 2) {
-                $stmt->bind_param("ii", $params[0], $params[1]);
+                $stmt->bind_param("si", $params[0], $params[1]);
             } else {
-                $stmt->bind_param("iii", $params[0], $params[1], $params[2]);
+                $stmt->bind_param("sii", $params[0], $params[1], $params[2]);
             }
-
+            
             $stmt->execute();
             $res = $stmt->get_result();
 
             if ($res->num_rows == 0) {
-                echo "No ICS found with ID: " . $ics_id;
+                echo "No ICS found with number: " . $ics_no;
                 exit;
             }
 
+            // Get the first record for the header information
             $ics = $res->fetch_object();
 
             if ($ics) {
@@ -211,7 +228,9 @@ ob_start(); // Start output buffering
                                     <td class="tds"><?php echo htmlspecialchars($item->inventory_item_no ?? ''); ?></td>
                                     <td class="tds"><?php echo htmlspecialchars($item->estimated_useful_life ?? ''); ?></td>
                                 </tr>
-                                <tr>
+                               
+                            <?php } ?>
+                            <tr>
                                     <td class="tds"></td>
                                     <td class="tds"></td>
                                     <td class="tds"></td>
@@ -220,7 +239,6 @@ ob_start(); // Start output buffering
                                     <td class="tds"></td>
                                     <td class="tds"></td>
                                 </tr>
-                            <?php } ?>
                         </tbody>
                     </table>
                 </div>
