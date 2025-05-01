@@ -188,7 +188,24 @@ require_once('partials/_head.php');
                         <td><?php echo $item->total_amount ?? '0.00'; ?></td>
                         <td><?php echo $item->property_custodian ?? $item->custodian_name ?? $item->issued_by_name ?? 'N/A'; ?></td>
                         <td>
-                          <a href="track_view.php?id=<?php echo $item->{$tables[$item->source_table]['id_column']}; ?>&table=<?php echo $item->source_table; ?>">
+                          <a href="track_view.php?item_id=<?php 
+                            // Get the items table item ID
+                            $items_table = $tables[$item->source_table]['items_table'];
+                            $item_id_field = "{$items_table}_id";
+                            if ($item->source_table == 'requisition_and_issue_slips' && $items_table == 'ris_items') {
+                                $item_id_field = "ris_item_id";
+                            }elseif($item->source_table == 'property_acknowledgment_receipts' && $items_table == 'par_items'){
+                              $item_id_field = "par_item_id";
+                            }elseif($item->source_table == 'inventory_custodian_slips' && $items_table == 'ics_items'){
+                              $item_id_field = "ics_item_id";
+                            }elseif($item->source_table == 'inspection_acceptance_reports' && $items_table == 'iar_items'){
+                              $item_id_field = "iar_item_id";
+                            }
+
+                            // Debug the field name
+                            error_log("Looking for field: $item_id_field in item object");
+                            echo isset($item->$item_id_field) ? $item->$item_id_field : '0';
+                          ?>&table=<?php echo $item->source_table; ?>">
                             <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i> View</button>
                           </a>
                           <!-- <a href="track_inventory.php?delete=<?php echo $item->{$tables[$item->source_table]['id_column']}; ?>&table=<?php echo $item->source_table; ?>&item_id=<?php 
@@ -291,8 +308,25 @@ require_once('partials/_head.php');
                               <td><?php echo $item->total_amount ?? '0.00'; ?></td>
                               <td><?php echo $item->property_custodian ?? $item->custodian_name ?? $item->issued_by_name ?? 'N/A'; ?></td>
                               <td>
-                                <a href="track_view.php?id=<?php echo $item->{$config['id_column']}; ?>&table=<?php echo $table; ?>">
-                                  <button class="btn btn-sm btn-primary"><i class="fas fa-eye"></i> View</button>
+                                <a href="track_view.php?item_id=<?php 
+                                  // Get the items table item ID
+                                  $items_table = $config['items_table'];
+                                  $item_id_field = "{$items_table}_id";
+                                  if ($table == 'requisition_and_issue_slips' && $items_table == 'ris_items') {
+                                      $item_id_field = "ris_item_id";
+                                  }elseif($table == 'property_acknowledgment_receipts' && $items_table == 'par_items'){
+                                    $item_id_field = "par_item_id";
+                                  }elseif($table == 'inventory_custodian_slips' && $items_table == 'ics_items'){
+                                    $item_id_field = "ics_item_id";
+                                  }elseif($table == 'inspection_acceptance_reports' && $items_table == 'iar_items'){
+                                    $item_id_field = "iar_item_id";
+                                  }
+
+                                  // Debug the field name
+                                  error_log("Looking for field: $item_id_field in item object");
+                                  echo isset($item->$item_id_field) ? $item->$item_id_field : '0';
+                                ?>&table=<?php echo $table; ?>">
+                                  <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i> View</button>
                                 </a>
                                 <!-- <a href="track_inventory.php?delete=<?php echo $item->{$config['id_column']}; ?>&table=<?php echo $table; ?>&item_id=<?php 
                                   // Get the items table item ID
@@ -301,12 +335,13 @@ require_once('partials/_head.php');
                                   if ($table == 'requisition_and_issue_slips' && $items_table == 'ris_items') {
                                       $item_id_field = "ris_item_id";
                                   }elseif($table == 'property_acknowledgment_receipts' && $items_table == 'par_items'){
-                                      $item_id_field = "par_item_id";
+                                    $item_id_field = "par_item_id";
                                   }elseif($table == 'inventory_custodian_slips' && $items_table == 'ics_items'){
-                                      $item_id_field = "ics_item_id";
+                                    $item_id_field = "ics_item_id";
                                   }elseif($table == 'inspection_acceptance_reports' && $items_table == 'iar_items'){
-                                      $item_id_field = "iar_item_id";
+                                    $item_id_field = "iar_item_id";
                                   }
+
                                   // Debug the field name
                                   error_log("Looking for field: $item_id_field in item object");
                                   echo isset($item->$item_id_field) ? $item->$item_id_field : '0';
@@ -314,7 +349,24 @@ require_once('partials/_head.php');
                                   onclick="return confirm('Are you sure you want to delete this record?')">
                                   <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
                                 </a>
-                                <a href="track_inventory_update.php?id=<?php echo $item->{$config['id_column']}; ?>&table=<?php echo $table; ?>">
+                                <a href="track_inventory_update.php?id=<?php echo $item->{$config['id_column']}; ?>&table=<?php echo $table; ?>&item_id=<?php 
+                                  // Get the items table item ID
+                                  $items_table = $config['items_table'];
+                                  $item_id_field = "{$items_table}_id";
+                                  if ($table == 'requisition_and_issue_slips' && $items_table == 'ris_items') {
+                                      $item_id_field = "ris_item_id";
+                                  }elseif($table == 'property_acknowledgment_receipts' && $items_table == 'par_items'){
+                                    $item_id_field = "par_item_id";
+                                  }elseif($table == 'inventory_custodian_slips' && $items_table == 'ics_items'){
+                                    $item_id_field = "ics_item_id";
+                                  }elseif($table == 'inspection_acceptance_reports' && $items_table == 'iar_items'){
+                                    $item_id_field = "iar_item_id";
+                                  }
+
+                                  // Debug the field name
+                                  error_log("Looking for field: $item_id_field in item object");
+                                  echo isset($item->$item_id_field) ? $item->$item_id_field : '0';
+                                ?>">
                                   <button class="btn btn-sm btn-primary"><i class="fas fa-user-edit"></i> Update</button>
                                 </a> -->
                               </td>

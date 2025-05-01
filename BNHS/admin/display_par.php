@@ -128,13 +128,14 @@ require_once('partials/_head.php');
                   <tr>
                     <th scope="col">Entity Name</th>
                     <th scope="col">Fund Cluster</th>
+                    <!-- <th scope="col">Article</th> -->
                     <th scope="col">PAR No.</th>
-                    <th scope="col">Quantity</th>
-                    <th scope="col">Unit</th>
-                    <th scope="col">Description</th>
-                    <th scope="col">Property Number</th>
+                    <!-- <th scope="col">Quantity</th>
+                    <th scope="col">Unit</th> -->
+                    <!-- <th scope="col">Description</th> -->
+                    <!-- <th scope="col">Property Number</th> -->
                     <th scope="col">Date Acquired</th>
-                    <th scope="col">Unit Cost</th>
+                    <!-- <th scope="col">Unit Cost</th> -->
                     <th scope="col">Total Cost</th>
                     <th scope="col">User Name</th>
                     <th scope="col">Position/Office</th>
@@ -142,56 +143,73 @@ require_once('partials/_head.php');
                     <th scope="col">Property Custodian Name</th>
                     <th scope="col">Position/Office</th>
                     <th scope="col">Date</th>
+                    <!-- <th scope="col">Remarks</th> -->
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   <?php
-                  $ret = "SELECT p.*, pi.quantity, pi.property_number, pi.par_item_id, e.entity_name, e.fund_cluster, i.item_id, i.item_description, i.unit, i.unit_cost, (pi.quantity * i.unit_cost) as total_amount 
+                  $ret = "SELECT p.*, e.entity_name, e.fund_cluster 
                           FROM property_acknowledgment_receipts p 
-                          JOIN par_items pi ON p.par_id = pi.par_id 
                           JOIN entities e ON p.entity_id = e.entity_id
-                          JOIN items i ON pi.item_id = i.item_id
+                          GROUP BY p.par_no
                           ORDER BY p.created_at DESC";
                   $stmt = $mysqli->prepare($ret);
                   $stmt->execute();
                   $res = $stmt->get_result();
                   while ($par = $res->fetch_object()) {
+                    // Get one item from this PAR to display as an example
+                    $item_query = "SELECT pi.quantity, pi.property_number, pi.article, pi.par_item_id, pi.remarks, 
+                                          i.item_id, 
+                                          -- i.item_description,
+                                           i.unit, 
+                                           i.unit_cost, 
+                                          (pi.quantity * i.unit_cost) as total_amount
+                                   FROM par_items pi 
+                                   JOIN items i ON pi.item_id = i.item_id
+                                   WHERE pi.par_id = ?
+                                   LIMIT 1";
+                    $item_stmt = $mysqli->prepare($item_query);
+                    $item_stmt->bind_param('i', $par->par_id);
+                    $item_stmt->execute();
+                    $item_res = $item_stmt->get_result();
+                    $item = $item_res->fetch_object();
                   ?>
                     <tr>
                       <td><?php echo $par->entity_name; ?></td>
                       <td><?php echo $par->fund_cluster; ?></td>
+                      <!-- <td><?php echo $item->article; ?></td> -->
                       <td><?php echo $par->par_no; ?></td>
-                      <td><?php echo $par->quantity; ?></td>
-                      <td><?php echo $par->unit; ?></td>
-                      <td><?php echo $par->item_description; ?></td>
-                      <td><?php echo $par->property_number; ?></td>
+                      <!-- <td><?php echo $item->quantity; ?></td>
+                      <td><?php echo $item->unit; ?></td> -->
+                      <!-- <td><?php echo $item->item_description; ?></td> -->
+                      <!-- <td><?php echo $item->property_number; ?></td> -->
                       <td><?php echo $par->date_acquired; ?></td>
-                      <td><?php echo $par->unit_cost; ?></td>
-                      <td><?php echo $par->total_amount; ?></td>
+                      <!-- <td><?php echo $item->unit_cost; ?></td> -->
+                      <td><?php echo $item->total_amount; ?></td>
                       <td><?php echo $par->end_user_name; ?></td>
                       <td><?php echo $par->receiver_position; ?></td>
                       <td><?php echo $par->receiver_date; ?></td>
                       <td><?php echo $par->custodian_name; ?></td>
                       <td><?php echo $par->custodian_position; ?></td>
                       <td><?php echo $par->custodian_date; ?></td>
+                      <!-- <td><?php echo $item->remarks; ?></td> -->
                       <td>
-                        <!-- <a href="display_par.php?delete_item=<?php echo $par->par_item_id; ?>" 
-                         >
+                        <!-- <a href="display_par.php?delete=<?php echo $par->par_id; ?>">
                           <button class="btn btn-sm btn-danger">
                             <i class="fas fa-trash"></i>
-                            Delete
+                            Delete All
                           </button>
-                        </a>
+                        </a> -->
 
-                        <a href="par_update.php?update_item=<?php echo $par->par_id . '&item_id=' . $par->item_id . '&par_item_id=' . $par->par_item_id; ?>">
+                        <!-- <a href="par_update.php?update=<?php echo $par->par_id; ?>">
                           <button class="btn btn-sm btn-primary">
                             <i class="fas fa-user-edit"></i>
                             Update
                           </button>
                         </a> -->
-                        <a href="print_par_files.php?par_id=<?php echo $par->par_id; ?>&item_id=<?php echo $par->item_id; ?>" target="_blank">
-                          <button class="btn btn-sm btn-primary">
+                        <a href="print_par_files.php?par_id=<?php echo $par->par_id; ?>" target="_blank">
+                          <button class="btn btn-sm btn-info">
                             <i class="fas fa-print"></i>
                             Print File
                           </button>

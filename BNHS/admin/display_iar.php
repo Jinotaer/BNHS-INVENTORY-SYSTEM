@@ -134,13 +134,13 @@ require_once('partials/_head.php');
                     <th scope="col">IAR No.</th>
                     <th scope="col">IAR Date</th>
                     <th scope="col">Invoice No. / Date</th>
-                    <th scope="col">Stock No.</th>
-                    <th scope="col">Remarks</th>
-                    <th scope="col">Item Description</th>
-                    <th scope="col">Unit</th>
+                    <!-- <th scope="col">Stock No.</th>
+                    <th scope="col">Remarks</th> -->
+                    <!-- <th scope="col">Item Description</th> -->
+                    <!-- <th scope="col">Unit</th>
                     <th scope="col">Quantity</th>
                     <th scope="col">Unit Price</th>
-                    <th scope="col">Total Price</th>
+                    <th scope="col">Total Price</th> -->
                     <th scope="col">Receiver Name</th>
                     <th scope="col">Teacher's ID</th>
                     <th scope="col">Position</th>
@@ -156,24 +156,31 @@ require_once('partials/_head.php');
                 <tbody>
                   <?php
                   $ret = "SELECT 
-                    iar.*, 
+                    iar.iar_id,
+                    iar.entity_id,
+                    iar.supplier_id,
+                    iar.po_no_date,
+                    iar.req_office,
+                    iar.responsibility_center,
+                    iar.iar_no,
+                    iar.iar_date,
+                    iar.invoice_no_date,
+                    iar.receiver_name,
+                    iar.teacher_id,
+                    iar.position,
+                    iar.date_inspected,
+                    iar.inspectors,
+                    iar.barangay_councilor,
+                    iar.pta_observer,
+                    iar.date_received,
+                    iar.property_custodian,
                     e.entity_name, 
                     e.fund_cluster, 
-                    s.supplier_name as supplier,
-                    i.stock_no,
-                    i.item_description,
-                    i.unit,
-                    i.item_id,
-                    ii.iar_item_id,
-                    ii.quantity,
-                    ii.unit_price,
-                    ii.total_price,
-                    ii.remarks
+                    s.supplier_name as supplier
                   FROM inspection_acceptance_reports iar
                   JOIN entities e ON iar.entity_id = e.entity_id
                   JOIN suppliers s ON iar.supplier_id = s.supplier_id
-                  JOIN iar_items ii ON iar.iar_id = ii.iar_id
-                  JOIN items i ON ii.item_id = i.item_id
+                  GROUP BY iar.iar_no
                   ORDER BY iar.created_at DESC";
                   
                   $stmt = $mysqli->prepare($ret);
@@ -181,6 +188,26 @@ require_once('partials/_head.php');
                   $res = $stmt->get_result();
                   
                   while ($iar = $res->fetch_object()) {
+                    // Get one item from this IAR to display as a sample
+                    $item_query = "SELECT 
+                      i.stock_no,
+                      i.unit,
+                      i.item_id,
+                      ii.iar_item_id,
+                      ii.quantity,
+                      ii.unit_price,
+                      ii.total_price,
+                      ii.remarks
+                    FROM iar_items ii
+                    JOIN items i ON ii.item_id = i.item_id
+                    WHERE ii.iar_id = ?
+                    LIMIT 1";
+                    
+                    $item_stmt = $mysqli->prepare($item_query);
+                    $item_stmt->bind_param('i', $iar->iar_id);
+                    $item_stmt->execute();
+                    $item_res = $item_stmt->get_result();
+                    $item = $item_res->fetch_object();
                     ?>
                     <tr>
                       <td><?php echo htmlspecialchars($iar->entity_name); ?></td>
@@ -192,13 +219,13 @@ require_once('partials/_head.php');
                       <td><?php echo htmlspecialchars($iar->iar_no); ?></td>
                       <td><?php echo date('M d, Y', strtotime($iar->iar_date)); ?></td>
                       <td><?php echo htmlspecialchars($iar->invoice_no_date); ?></td>
-                      <td><?php echo htmlspecialchars($iar->stock_no); ?></td>
-                      <td><?php echo htmlspecialchars($iar->remarks); ?></td>
-                      <td><?php echo htmlspecialchars($iar->item_description); ?></td>
-                      <td><?php echo htmlspecialchars($iar->unit); ?></td>
-                      <td><?php echo number_format($iar->quantity); ?></td>
-                      <td>₱<?php echo number_format($iar->unit_price, 2); ?></td>
-                      <td>₱<?php echo number_format($iar->total_price, 2); ?></td>
+                      <!-- <td><?php echo htmlspecialchars($item->stock_no); ?></td> -->
+                      <!-- <td><?php echo htmlspecialchars($item->remarks); ?></td> -->
+                      <!-- <td><?php // echo htmlspecialchars($item->item_description); ?></td> -->
+                      <!-- <td><?php echo htmlspecialchars($item->unit); ?></td>
+                      <td><?php echo number_format($item->quantity); ?></td>
+                      <td>₱<?php echo number_format($item->unit_price, 2); ?></td>
+                      <td>₱<?php echo number_format($item->total_price, 2); ?></td> -->
                       <td><?php echo htmlspecialchars($iar->receiver_name); ?></td>
                       <td><?php echo htmlspecialchars($iar->teacher_id); ?></td>
                       <td><?php echo htmlspecialchars($iar->position); ?></td>
@@ -209,21 +236,21 @@ require_once('partials/_head.php');
                       <td><?php echo date('M d, Y', strtotime($iar->date_received)); ?></td>
                       <td><?php echo htmlspecialchars($iar->property_custodian); ?></td>
                       <td>
-                        <!-- <a href="display_iar.php?delete_item=<?php echo $iar->iar_item_id; ?>">
+                        <!-- <a href="display_iar.php?delete=<?php echo $iar->iar_id; ?>">
                           <button class="btn btn-sm btn-danger">
                             <i class="fas fa-trash"></i>
-                            Delete
+                            Delete All
                           </button>
-                        </a>
+                        </a> -->
 
-                        <a href="iar_update.php?update_item=<?php echo $iar->iar_id . '&item_id=' . $iar->item_id . '&iar_item_id=' . $iar->iar_item_id; ?>">
+                        <!-- <a href="iar_update.php?update=<?php echo $iar->iar_id; ?>">
                           <button class="btn btn-sm btn-primary">
                             <i class="fas fa-user-edit"></i>
                             Update
                           </button>
                         </a> -->
-                        <a href="print_iar_files.php?iar_id=<?php echo $iar->iar_id . '&item_id=' . $iar->item_id . '&iar_item_id=' . $iar->iar_item_id; ?>" target="_blank">
-                          <button class="btn btn-sm btn-primary">
+                        <a href="print_iar_files.php?iar_id=<?php echo $iar->iar_id; ?>" target="_blank">
+                          <button class="btn btn-sm btn-info">
                             <i class="fas fa-print"></i>
                             Print File
                           </button>

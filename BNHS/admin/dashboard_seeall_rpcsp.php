@@ -31,73 +31,59 @@ require_once('partials/_head.php');
       <div class="row">
         <div class="col">
           <div class="card shadow">
-            <div class="card-header border-0">
-              REPORT ON THE PHYSICAL COUNT OF SEMI- EXPENDABLE PROPERTY
+            <div class="card-header border-0" style="text-align: center; padding: 30px;">
+              <strong>REPORT ON THE PHYSICAL COUNT OF SEMI- EXPENDABLE PROPERTY</strong>
             </div>
             <div class="table-responsive">
               <table class="table align-items-center table-flush">
                 <thead class="thead-light">
                   <tr>
-                    <th class="text-primary" scope="col">Entity Name</th>
-                    <th scope="col">Fund Cluster</th>
-                    <th class="text-primary" scope="col">ICS No.</th>
-                    <th scope="col">Quantity</th>
-                    <th class="text-primary" scope="col">Unit</th>
-                    <th scope="col">Unit Cost</th>
-                    <th class="text-primary" scope="col">Total Amount</th>
+                  <th class="text-primary" scope="col">Article</th>
                     <th scope="col">Item Description</th>
                     <th class="text-primary" scope="col">Inventory Item No.</th>
+                    <th scope="col">Unit</th>
+                    <th class="text-primary" scope="col">Unit Value</th>
+                    <th scope="col">Quantity</th>
+                    <th class="text-primary" scope="col">Total Amount</th>
                     <th scope="col">Estimated Useful Life</th>
-                    <th class="text-primary" scope="col">User Name</th>
-                    <th scope="col">Position/Office</th>
-                    <th class="text-primary" scope="col">Date Received(by User)</th>
-                    <th scope="col">Property Custodian</th>
-                    <th class="text-primary" scope="col">Position/Office</th>
-                    <th scope="col">Date Received(by Custodian)</th>
+                    <th class="text-primary" scope="col">Remarks</th>
                   </tr>
                 </thead>
                 <tbody>
-                <?php
-                  $ret = "SELECT ics.ics_no, ics.end_user_name, ics.end_user_position, ics.end_user_date,
-                          ics.custodian_name, ics.custodian_position, ics.custodian_date,
-                          e.entity_name, e.fund_cluster,
-                          i.item_description, i.unit, i.unit_cost, i.estimated_useful_life,
-                          ii.quantity, ii.inventory_item_no,
-                          (ii.quantity * i.unit_cost) as total_cost
-                          FROM inventory_custodian_slips ics
-                          LEFT JOIN entities e ON ics.entity_id = e.entity_id
-                          LEFT JOIN ics_items ii ON ics.ics_id = ii.ics_id
-                          LEFT JOIN items i ON ii.item_id = i.item_id
-                          WHERE i.item_id NOT IN (SELECT item_id FROM iar_items)
+                  <?php
+                  $ret = "SELECT ics.ics_id as id, ics.ics_no, ics.end_user_name, ics.end_user_position, 
+                  ics.end_user_date as date_received_user, ics.custodian_name, ics.custodian_position, 
+                  ics.custodian_date as date_received_custodian, ics.created_at,
+                  i.item_description, i.unit_cost, i.unit, i.estimated_useful_life as estimated_life,
+                  e.entity_name, e.fund_cluster as entity_fund_cluster,
+                  ii.quantity, ii.inventory_item_no, ii.remarks, ii.article,
+                  (ii.quantity * i.unit_cost) as total_amount
+                  FROM inventory_custodian_slips ics
+                  LEFT JOIN ics_items ii ON ics.ics_id = ii.ics_id
+                  LEFT JOIN items i ON ii.item_id = i.item_id
+                  LEFT JOIN entities e ON ics.entity_id = e.entity_id
                           ORDER BY ics.created_at DESC";
                   $stmt = $mysqli->prepare($ret);
                   if ($stmt) {
-                      $stmt->execute();
-                      $res = $stmt->get_result();
-                      while ($ics = $res->fetch_object()) {
-                    ?>
-                    <tr>
-                      <td class="text-primary" scope="rows"><?php echo isset($ics->entity_name) ? $ics->entity_name : 'N/A'; ?></td>
-                      <td><?php echo isset($ics->fund_cluster) ? $ics->fund_cluster : 'N/A'; ?></td>
-                      <td class="text-primary"><?php echo $ics->ics_no; ?></td>
-                      <td><?php echo isset($ics->quantity) ? $ics->quantity : 'N/A'; ?></td>
-                      <td class="text-primary"><?php echo isset($ics->unit) ? $ics->unit : 'N/A'; ?></td>
-                      <td><?php echo isset($ics->unit_cost) ? $ics->unit_cost : 'N/A'; ?></td>
-                      <td class="text-primary"><?php echo isset($ics->total_cost) ? $ics->total_cost : 'N/A'; ?></td>
-                      <td><?php echo isset($ics->item_description) ? $ics->item_description : 'N/A'; ?></td>
-                      <td class="text-primary"><?php echo isset($ics->inventory_item_no) ? $ics->inventory_item_no : 'N/A'; ?></td>
-                      <td><?php echo isset($ics->estimated_useful_life) ? $ics->estimated_useful_life : 'N/A'; ?></td>
-                      <td class="text-primary"><?php echo $ics->end_user_name; ?></td>
-                      <td><?php echo $ics->end_user_position; ?></td>
-                      <td class="text-primary"><?php echo $ics->end_user_date; ?></td>
-                      <td><?php echo $ics->custodian_name; ?></td>
-                      <td class="text-primary"><?php echo $ics->custodian_position; ?></td>
-                      <td><?php echo $ics->custodian_date; ?></td>
-                    </tr>
+                    $stmt->execute();
+                    $res = $stmt->get_result();
+                    while ($ics = $res->fetch_object()) {
+                  ?>
+                      <tr>
+                      <td class="text-primary"><?php echo isset($ics->article) ? $ics->article : ''; ?></td>
+                        <td><?php echo isset($ics->item_description) ? $ics->item_description : ''; ?></td>
+                        <td class="text-primary"><?php echo isset($ics->inventory_item_no) ? $ics->inventory_item_no : ''; ?></td>
+                        <td><?php echo isset($ics->unit) ? $ics->unit : ''; ?></td>
+                        <td class="text-primary"><?php echo isset($ics->unit_cost) ? $ics->unit_cost : ''; ?></td>
+                        <td><?php echo isset($ics->quantity) ? $ics->quantity : ''; ?></td>
+                        <td class="text-primary"><?php echo isset($ics->total_amount) ? $ics->total_amount : ''; ?></td>
+                        <td><?php echo isset($ics->estimated_life) ? $ics->estimated_life : ''; ?></td>
+                        <td class="text-primary"><?php echo isset($ics->remarks) ? $ics->remarks : ''; ?></td>
+                      </tr>
                   <?php
-                      }
+                    }
                   } else {
-                      echo "<tr><td colspan='16' class='text-center'>Error executing query: " . $mysqli->error . "</td></tr>";
+                    echo "<tr><td colspan='16' class='text-center'>Error executing query: " . $mysqli->error . "</td></tr>";
                   }
                   ?>
                 </tbody>
