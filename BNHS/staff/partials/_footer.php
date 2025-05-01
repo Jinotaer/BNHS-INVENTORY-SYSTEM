@@ -1,4 +1,4 @@
-<footer class="text-muted fixed-bottom mb-5">
+<footer class="text-muted fixed-bottom mb-4">
   <div class="container">
     <div class="row align-items-center">
       <div class="col-md-6 text-left text-md-start">

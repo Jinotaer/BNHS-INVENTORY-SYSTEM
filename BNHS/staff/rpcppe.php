@@ -6,7 +6,7 @@ check_login();
 //Delete Staff
 if (isset($_GET['delete'])) {
   $id = $_GET['delete'];
-  $adn = "DELETE FROM  property_acknowledgement_receipts  WHERE  par_id = ?";
+  $adn = "DELETE FROM  property_acknowledgment_receipts  WHERE  par_id = ?";
   $stmt = $mysqli->prepare($adn);
   $stmt->bind_param('s', $id);
   $result = $stmt->execute();
@@ -123,14 +123,13 @@ require_once('partials/_head.php');
                       $entity_filter .= " AND pi.article = ? ";
                     }
                     
-                    $ret = "SELECT par.par_id as id, par.par_no, par.end_user_name, par.end_user_position, 
-                            par.end_user_date as date_received_user, par.issuer_name, par.issuer_position, 
-                            par.issuer_date as date_issued, par.created_at,
-                            i.item_description, i.unit_cost, i.unit, i.date_acquired,
+                    $ret = "SELECT par.par_id as id, par.par_no, par.end_user_name, par.receiver_position, 
+                            par.receiver_date, par.date_acquired,
+                            i.item_description, i.unit_cost, i.unit,
                             e.entity_name, e.fund_cluster as entity_fund_cluster,
-                            pi.quantity, pi.property_no, pi.remarks, pi.article,
+                            pi.quantity, pi.property_number, pi.remarks, pi.article,
                             (pi.quantity * i.unit_cost) as total_amount
-                            FROM property_acknowledgement_receipts par
+                            FROM property_acknowledgment_receipts par
                             LEFT JOIN par_items pi ON par.par_id = pi.par_id
                             LEFT JOIN items i ON pi.item_id = i.item_id
                             LEFT JOIN entities e ON par.entity_id = e.entity_id
@@ -155,7 +154,7 @@ require_once('partials/_head.php');
                     <tr>
                       <td><?php echo isset($par->article) ? $par->article : ''; ?></td>
                       <td><?php echo isset($par->item_description) ? $par->item_description : ''; ?></td>
-                      <td><?php echo isset($par->property_no) ? $par->property_no : ''; ?></td>
+                      <td><?php echo isset($par->property_number) ? $par->property_number : ''; ?></td>
                       <td><?php echo isset($par->unit) ? $par->unit : ''; ?></td>
                       <td><?php echo isset($par->unit_cost) ? $par->unit_cost : ''; ?></td>
                       <td><?php echo isset($par->quantity) ? $par->quantity : ''; ?></td>

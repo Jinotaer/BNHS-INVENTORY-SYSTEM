@@ -20,9 +20,9 @@ if ($_SERVER['REQUEST_METHOD'] == "POST" && isset($_POST['update'])) {
   // Get the RIS ID from the form
   $ris_id = (int)$_POST['ris_id'];
 
-  echo "<pre>POST data: ";
-  var_dump($_POST);
-  echo "</pre>";
+    // echo "<pre>POST data: ";
+    // var_dump($_POST);
+    // echo "</pre>";
 
   // Sanitize and collect form data
   function sanitize($data)

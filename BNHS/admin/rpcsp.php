@@ -6,7 +6,7 @@ check_login();
 //Delete Staff
 if (isset($_GET['delete'])) {
   $id = $_GET['delete'];
-  $adn = "DELETE FROM  inventory_custodian_slip  WHERE  id = ?";
+  $adn = "DELETE FROM  inventory_custodian_slips  WHERE  ics_id = ?";
   $stmt = $mysqli->prepare($adn);
   $stmt->bind_param('s', $id);
   $result = $stmt->execute();
@@ -48,37 +48,62 @@ require_once('partials/_head.php');
         <div class="col">
           <div class="card shadow">
             <div class="card-header border-0">
-              <div class="col">
-                <h2 class="text-center mb-3 pt-3 text-uppercase">REPORT ON THE PHYSICAL COUNT OF SEMI- EXPENDABLE PROPERTY</h2>
+              <div class="col" style="padding: 15px;">
+                <h2 class="text-center mb-pt-3 text-uppercase">REPORT ON THE PHYSICAL COUNT OF SEMI- EXPENDABLE PROPERTY</h2>
               </div>
-              <div class="col text-right">
-                <i></i>
-                <a href="print_ics_files.php" class="btn btn-sm btn-primary">
-                  <i class="material-icons-sharp text-primary"></i>
-                  Print files</a>
+              
+              <!-- Add filter form -->
+              <div class="row mb-4 mt-3">
+                <div class="col-md-6">
+                  <form method="GET" action="rpcsp.php" class="d-flex align-items-center">
+                    <div class="input-group">
+                      <select name="article" class="form-control">
+                        <option value="">All Articles</option>
+                        <?php
+                          // Get unique articles
+                          $article_query = "SELECT DISTINCT ii.article FROM ics_items ii 
+                                           WHERE ii.article IS NOT NULL AND ii.article != '' 
+                                           ORDER BY ii.article ASC";
+                          $article_stmt = $mysqli->prepare($article_query); 
+                          $article_stmt->execute();
+                          $article_res = $article_stmt->get_result();
+                          
+                          while($article = $article_res->fetch_object()) {
+                            $selected = (isset($_GET['article']) && $_GET['article'] == $article->article) ? 'selected' : '';
+                            echo "<option value='".$article->article."' $selected>".$article->article."</option>";
+                          }
+                          $article_stmt->close();
+                        ?>
+                      </select>
+                      <div class="input-group-append">
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+                <div class="col-md-6 text-right">
+                  <?php if(isset($_GET['article']) && !empty($_GET['article'])): ?>
+                  <a href="print_rpcsp_article.php?article=<?php echo urlencode($_GET['article']); ?>" class="btn btn-success" target="_blank">
+                    Print
+                  </a>
+                  <?php endif; ?>
+                </div>
               </div>
+              <!-- End filter form -->
             </div>
             <div class="table-responsive">
               <table class="table align-items-center table-flush">
                 <thead class="thead-light">
                   <tr>
-                    <th scope="col">Entity Name</th>
-                    <th scope="col">Fund Cluster</th>
-                    <th scope="col">ICS No.</th>
-                    <th scope="col">Quantity</th>
-                    <th scope="col">Unit</th>
-                    <th scope="col">Unit Cost</th>
-                    <th scope="col">Total Amount</th>
+                    <th scope="col">Article</th>
                     <th scope="col">Item Description</th>
                     <th scope="col">Inventory Item No.</th>
+                    <th scope="col">Unit</th>
+                    <th scope="col">Unit Value</th>
+                    <th scope="col">Quantity</th>
+                    <th scope="col">Total Amount</th>
                     <th scope="col">Estimated Useful Life</th>
-                    <th scope="col">User Name</th>
-                    <th scope="col">Position/Office</th>
-                    <th scope="col">Date Received(by User)</th>
-                    <th scope="col">Property Custodian</th>
-                    <th scope="col">Position/Office</th>
-                    <th scope="col">Date Received(by Custodian)</th>
-                    <!-- <th scope="col">Actions</th> -->
+                    <th scope="col">Remarks</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -88,13 +113,25 @@ require_once('partials/_head.php');
                     if (isset($_GET['entity_id']) && !empty($_GET['entity_id'])) {
                       $entity_id = $_GET['entity_id'];
                       $entity_filter = " WHERE ics.entity_id = '$entity_id' ";
+                    } else {
+                      $entity_filter = " WHERE 1=1 ";
                     }
                     
-                    $ret = "SELECT ics.*, i.item_description, i.unit_cost, i.unit, 
+                    // Add article filtering if set
+                    if (isset($_GET['article']) && !empty($_GET['article'])) {
+                      $article = $_GET['article'];
+                      $entity_filter .= " AND ii.article = ? ";
+                    }
+                    
+                    $ret = "SELECT ics.ics_id as id, ics.ics_no, ics.end_user_name, ics.end_user_position, 
+                            ics.end_user_date as date_received_user, ics.custodian_name, ics.custodian_position, 
+                            ics.custodian_date as date_received_custodian, ics.created_at,
+                            i.item_description, i.unit_cost, i.unit, i.estimated_useful_life as estimated_life,
                             e.entity_name, e.fund_cluster as entity_fund_cluster,
-                            ii.quantity, ii.inventory_item_no
-                            FROM inventory_custodian_slip ics
-                            LEFT JOIN ics_items ii ON ics.id = ii.ics_id
+                            ii.quantity, ii.inventory_item_no, ii.remarks, ii.article,
+                            (ii.quantity * i.unit_cost) as total_amount
+                            FROM inventory_custodian_slips ics
+                            LEFT JOIN ics_items ii ON ics.ics_id = ii.ics_id
                             LEFT JOIN items i ON ii.item_id = i.item_id
                             LEFT JOIN entities e ON ics.entity_id = e.entity_id
                             $entity_filter
@@ -105,44 +142,26 @@ require_once('partials/_head.php');
                     if ($stmt === false) {
                       echo "Error preparing statement: " . $mysqli->error;
                     } else {
+                      // Bind parameters if article filter is set
+                      if (isset($_GET['article']) && !empty($_GET['article'])) {
+                        $stmt->bind_param("s", $article);
+                      }
+                      
                       $stmt->execute();
                       $res = $stmt->get_result();
                     
                     while ($ics = $res->fetch_object()) {
                   ?>
                     <tr>
-                      <td><?php echo isset($ics->entity_name) ? $ics->entity_name : ''; ?></td>
-                      <td><?php echo isset($ics->entity_fund_cluster) ? $ics->entity_fund_cluster : ''; ?></td>
-                      <td><?php echo $ics->ics_no; ?></td>
-                      <td><?php echo isset($ics->quantity) ? $ics->quantity : ''; ?></td>
-                      <td><?php echo isset($ics->unit) ? $ics->unit : ''; ?></td>
-                      <td><?php echo isset($ics->unit_cost) ? $ics->unit_cost : ''; ?></td>
-                      <td><?php echo $ics->total_amount; ?></td>
+                      <td><?php echo isset($ics->article) ? $ics->article : ''; ?></td>
                       <td><?php echo isset($ics->item_description) ? $ics->item_description : ''; ?></td>
                       <td><?php echo isset($ics->inventory_item_no) ? $ics->inventory_item_no : ''; ?></td>
-                      <td><?php echo $ics->estimated_life; ?></td>
-                      <td><?php echo $ics->end_user_name; ?></td>
-                      <td><?php echo $ics->end_user_position; ?></td>
-                      <td><?php echo $ics->date_received_user; ?></td>
-                      <td><?php echo $ics->custodian_name; ?></td>
-                      <td><?php echo $ics->custodian_position; ?></td>
-                      <td><?php echo $ics->date_received_custodian; ?></td>
-                      <td>
-                        <!-- <a href="rpcsp.php?delete=<?php echo $ics->id; ?>" 
-                           onclick="return confirm('Are you sure you want to delete this record?')">
-                          <button class="btn btn-sm btn-danger">
-                            <i class="fas fa-trash"></i>
-                            Delete
-                          </button>
-                        </a>
-
-                        <a href="ics_update.php?update=<?php echo $ics->id; ?>">
-                          <button class="btn btn-sm btn-primary">
-                            <i class="fas fa-user-edit"></i>
-                            Update
-                          </button>
-                        </a> -->
-                      </td>
+                      <td><?php echo isset($ics->unit) ? $ics->unit : ''; ?></td>
+                      <td><?php echo isset($ics->unit_cost) ? $ics->unit_cost : ''; ?></td>
+                      <td><?php echo isset($ics->quantity) ? $ics->quantity : ''; ?></td>
+                      <td><?php echo isset($ics->total_amount) ? $ics->total_amount : ''; ?></td>
+                      <td><?php echo isset($ics->estimated_life) ? $ics->estimated_life : ''; ?></td>
+                      <td><?php echo isset($ics->remarks) ? $ics->remarks : ''; ?></td>
                     </tr>
                   <?php }
                   }

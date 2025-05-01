@@ -19,122 +19,263 @@ $tables = [
 // Get parameters
 $source_table = isset($_GET['table']) ? $_GET['table'] : '';
 $record_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$item_id = isset($_GET['item_id']) ? intval($_GET['item_id']) : 0;
+
+// Map tables to their items tables
+$item_tables = [
+    'inspection_acceptance_reports' => 'iar_items',
+    'inventory_custodian_slips' => 'ics_items',
+    'requisition_and_issue_slips' => 'ris_items',
+    'property_acknowledgment_receipts' => 'par_items'
+];
+
+// Map item tables to their ID columns
+$item_id_columns = [
+    'iar_items' => 'iar_item_id',
+    'ics_items' => 'ics_item_id',
+    'ris_items' => 'ris_item_id',
+    'par_items' => 'par_item_id'
+];
 
 // Validate
-if (!in_array($source_table, $tables) || $record_id <= 0) {
+if (!in_array($source_table, $tables) || ($record_id <= 0 && $item_id <= 0)) {
     die("Invalid table or ID.");
 }
 
+// Get the correct items table and ID column
+$items_table = isset($item_tables[$source_table]) ? $item_tables[$source_table] : '';
+$item_id_column = isset($item_id_columns[$items_table]) ? $item_id_columns[$items_table] : '';
+
 // Fetch existing record with special handling for each table type
 if ($source_table === 'inventory_custodian_slips') {
-    $query = "SELECT ics.ics_id as id, e.entity_name, e.fund_cluster, ics.ics_no,
-              ii.quantity, i.unit, i.unit_cost, (ii.quantity * i.unit_cost) as total_amount,
-              i.item_description, ii.inventory_item_no, i.estimated_useful_life,
-              ics.end_user_name, ics.end_user_position, ics.end_user_date,
-              ics.custodian_name, ics.custodian_position, ics.custodian_date,
-              ics.created_at, ii.article, ii.remarks
-            FROM inventory_custodian_slips ics
-            JOIN entities e ON ics.entity_id = e.entity_id
-            JOIN ics_items ii ON ics.ics_id = ii.ics_id
-            JOIN items i ON ii.item_id = i.item_id
-            WHERE ics.ics_id = ?";
+    // Check if we're using the specific item ID or main record ID
+    if ($item_id > 0 && !empty($item_id_column)) {
+        $query = "SELECT ics.ics_id as id, e.entity_name, e.fund_cluster, ics.ics_no,
+                  ii.quantity, i.unit, i.unit_cost, (ii.quantity * i.unit_cost) as total_amount,
+                  i.item_description, ii.inventory_item_no, i.estimated_useful_life,
+                  ics.end_user_name, ics.end_user_position, ics.end_user_date,
+                  ics.custodian_name, ics.custodian_position, ics.custodian_date,
+                  ics.created_at, ii.article, ii.remarks, ii.ics_item_id
+                FROM inventory_custodian_slips ics
+                JOIN entities e ON ics.entity_id = e.entity_id
+                JOIN ics_items ii ON ics.ics_id = ii.ics_id
+                JOIN items i ON ii.item_id = i.item_id
+                WHERE ii.ics_item_id = ?";
+    } else {
+        $query = "SELECT ics.ics_id as id, e.entity_name, e.fund_cluster, ics.ics_no,
+                  ii.quantity, i.unit, i.unit_cost, (ii.quantity * i.unit_cost) as total_amount,
+                  i.item_description, ii.inventory_item_no, i.estimated_useful_life,
+                  ics.end_user_name, ics.end_user_position, ics.end_user_date,
+                  ics.custodian_name, ics.custodian_position, ics.custodian_date,
+                  ics.created_at, ii.article, ii.remarks, ii.ics_item_id
+                FROM inventory_custodian_slips ics
+                JOIN entities e ON ics.entity_id = e.entity_id
+                JOIN ics_items ii ON ics.ics_id = ii.ics_id
+                JOIN items i ON ii.item_id = i.item_id
+                WHERE ics.ics_id = ?";
+    }
 } else if ($source_table === 'requisition_and_issue_slips') {
-    $query = "SELECT 
-              ris.ris_id as id, 
-              e.entity_name, 
-              e.fund_cluster, 
-              ris.division, 
-              ris.office,
-              ris.responsibility_code, 
-              ris.ris_no, 
-              ri.requested_qty, 
-              ri.stock_available, 
-              ri.issued_qty,
-              i.unit, 
-              i.item_description, 
-              i.stock_no, 
-              ri.remarks, 
-              ris.purpose,
-              ris.requested_by_name, 
-              ris.requested_by_designation, 
-              ris.requested_by_date,
-              ris.approved_by_name, 
-              ris.approved_by_designation, 
-              ris.approved_by_date,
-              ris.issued_by_name, 
-              ris.issued_by_designation, 
-              ris.issued_by_date,
-              ris.received_by_name, 
-              ris.received_by_designation, 
-              ris.received_by_date,
-              ris.article
-            FROM requisition_and_issue_slips ris
-            JOIN entities e ON ris.entity_id = e.entity_id
-            JOIN ris_items ri ON ris.ris_id = ri.ris_id
-            JOIN items i ON ri.item_id = i.item_id
-            WHERE ris.ris_id = ?";
+    if ($item_id > 0 && !empty($item_id_column)) {
+        $query = "SELECT 
+                  ris.ris_id as id, 
+                  e.entity_name, 
+                  e.fund_cluster, 
+                  ris.division, 
+                  ris.office,
+                  ris.responsibility_code, 
+                  ris.ris_no, 
+                  ri.requested_qty, 
+                  ri.stock_available, 
+                  ri.issued_qty,
+                  i.unit, 
+                  i.item_description, 
+                  i.stock_no, 
+                  ri.remarks, 
+                  ris.purpose,
+                  ris.requested_by_name, 
+                  ris.requested_by_designation, 
+                  ris.requested_by_date,
+                  ris.approved_by_name, 
+                  ris.approved_by_designation, 
+                  ris.approved_by_date,
+                  ris.issued_by_name, 
+                  ris.issued_by_designation, 
+                  ris.issued_by_date,
+                  ris.received_by_name, 
+                  ris.received_by_designation, 
+                  ris.received_by_date,
+                  ri.ris_item_id
+                FROM requisition_and_issue_slips ris
+                JOIN entities e ON ris.entity_id = e.entity_id
+                JOIN ris_items ri ON ris.ris_id = ri.ris_id
+                JOIN items i ON ri.item_id = i.item_id
+                WHERE ri.ris_item_id = ?";
+    } else {
+        $query = "SELECT 
+                  ris.ris_id as id, 
+                  e.entity_name, 
+                  e.fund_cluster, 
+                  ris.division, 
+                  ris.office,
+                  ris.responsibility_code, 
+                  ris.ris_no, 
+                  ri.requested_qty, 
+                  ri.stock_available, 
+                  ri.issued_qty,
+                  i.unit, 
+                  i.item_description, 
+                  i.stock_no, 
+                  ri.remarks, 
+                  ris.purpose,
+                  ris.requested_by_name, 
+                  ris.requested_by_designation, 
+                  ris.requested_by_date,
+                  ris.approved_by_name, 
+                  ris.approved_by_designation, 
+                  ris.approved_by_date,
+                  ris.issued_by_name, 
+                  ris.issued_by_designation, 
+                  ris.issued_by_date,
+                  ris.received_by_name, 
+                  ris.received_by_designation, 
+                  ris.received_by_date,
+                  ri.ris_item_id
+                FROM requisition_and_issue_slips ris
+                JOIN entities e ON ris.entity_id = e.entity_id
+                JOIN ris_items ri ON ris.ris_id = ri.ris_id
+                JOIN items i ON ri.item_id = i.item_id
+                WHERE ris.ris_id = ?";
+    }
 } else if ($source_table === 'property_acknowledgment_receipts') {
-    $query = "SELECT 
-              par.par_id as id, 
-              e.entity_name, 
-              e.fund_cluster, 
-              par.par_no,
-              pi.quantity, 
-              i.unit, 
-              i.unit_cost, 
-              (pi.quantity * i.unit_cost) as total_amount,
-              i.item_description, 
-              pi.property_number, 
-              i.estimated_useful_life,
-              par.end_user_name, 
-              par.receiver_position, 
-              par.receiver_date,
-              par.custodian_name, 
-              par.custodian_position, 
-              par.custodian_date,
-              par.date_acquired,
-              pi.article,
-              pi.remarks
-            FROM property_acknowledgment_receipts par
-            JOIN entities e ON par.entity_id = e.entity_id
-            JOIN par_items pi ON par.par_id = pi.par_id
-            JOIN items i ON pi.item_id = i.item_id
-            WHERE par.par_id = ?";
+    if ($item_id > 0 && !empty($item_id_column)) {
+        $query = "SELECT 
+                  par.par_id as id, 
+                  e.entity_name, 
+                  e.fund_cluster, 
+                  par.par_no,
+                  pi.quantity, 
+                  i.unit, 
+                  i.unit_cost, 
+                  (pi.quantity * i.unit_cost) as total_amount,
+                  i.item_description, 
+                  pi.property_number, 
+                  i.estimated_useful_life,
+                  par.end_user_name, 
+                  par.receiver_position, 
+                  par.receiver_date,
+                  par.custodian_name, 
+                  par.custodian_position, 
+                  par.custodian_date,
+                  par.date_acquired,
+                  pi.article,
+                  pi.remarks,
+                  pi.par_item_id
+                FROM property_acknowledgment_receipts par
+                JOIN entities e ON par.entity_id = e.entity_id
+                JOIN par_items pi ON par.par_id = pi.par_id
+                JOIN items i ON pi.item_id = i.item_id
+                WHERE pi.par_item_id = ?";
+    } else {
+        $query = "SELECT 
+                  par.par_id as id, 
+                  e.entity_name, 
+                  e.fund_cluster, 
+                  par.par_no,
+                  pi.quantity, 
+                  i.unit, 
+                  i.unit_cost, 
+                  (pi.quantity * i.unit_cost) as total_amount,
+                  i.item_description, 
+                  pi.property_number, 
+                  i.estimated_useful_life,
+                  par.end_user_name, 
+                  par.receiver_position, 
+                  par.receiver_date,
+                  par.custodian_name, 
+                  par.custodian_position, 
+                  par.custodian_date,
+                  par.date_acquired,
+                  pi.article,
+                  pi.remarks,
+                  pi.par_item_id
+                FROM property_acknowledgment_receipts par
+                JOIN entities e ON par.entity_id = e.entity_id
+                JOIN par_items pi ON par.par_id = pi.par_id
+                JOIN items i ON pi.item_id = i.item_id
+                WHERE par.par_id = ?";
+    }
 } else if ($source_table === 'inspection_acceptance_reports') {
-    $query = "SELECT 
-              iar.iar_id as id, 
-              e.entity_name, 
-              e.fund_cluster, 
-              s.supplier_name as supplier,
-              iar.po_no_date, 
-              iar.req_office, 
-              iar.responsibility_center, 
-              iar.iar_no, 
-              iar.iar_date,
-              iar.invoice_no_date, 
-              ii.quantity, 
-              i.unit, 
-              ii.unit_price, 
-              ii.total_price,
-              i.item_description, 
-              i.stock_no, 
-              ii.remarks,
-              iar.receiver_name, 
-              iar.teacher_id, 
-              iar.position,
-              iar.date_inspected, 
-              iar.inspectors, 
-              iar.barangay_councilor,
-              iar.pta_observer, 
-              iar.date_received, 
-              iar.property_custodian,
-              iar.article
-            FROM inspection_acceptance_reports iar
-            JOIN entities e ON iar.entity_id = e.entity_id
-            JOIN suppliers s ON iar.supplier_id = s.supplier_id
-            JOIN iar_items ii ON iar.iar_id = ii.iar_id
-            JOIN items i ON ii.item_id = i.item_id
-            WHERE iar.iar_id = ?";
+    if ($item_id > 0 && !empty($item_id_column)) {
+        $query = "SELECT 
+                  iar.iar_id as id, 
+                  e.entity_name, 
+                  e.fund_cluster, 
+                  s.supplier_name as supplier,
+                  iar.po_no_date, 
+                  iar.req_office, 
+                  iar.responsibility_center, 
+                  iar.iar_no, 
+                  iar.iar_date,
+                  iar.invoice_no_date, 
+                  ii.quantity, 
+                  i.unit, 
+                  ii.unit_price, 
+                  ii.total_price,
+                  i.item_description, 
+                  i.stock_no, 
+                  ii.remarks,
+                  iar.receiver_name, 
+                  iar.teacher_id, 
+                  iar.position,
+                  iar.date_inspected, 
+                  iar.inspectors, 
+                  iar.barangay_councilor,
+                  iar.pta_observer, 
+                  iar.date_received, 
+                  iar.property_custodian,
+                  ii.iar_item_id
+                FROM inspection_acceptance_reports iar
+                JOIN entities e ON iar.entity_id = e.entity_id
+                JOIN suppliers s ON iar.supplier_id = s.supplier_id
+                JOIN iar_items ii ON iar.iar_id = ii.iar_id
+                JOIN items i ON ii.item_id = i.item_id
+                WHERE ii.iar_item_id = ?";
+    } else {
+        $query = "SELECT 
+                  iar.iar_id as id, 
+                  e.entity_name, 
+                  e.fund_cluster, 
+                  s.supplier_name as supplier,
+                  iar.po_no_date, 
+                  iar.req_office, 
+                  iar.responsibility_center, 
+                  iar.iar_no, 
+                  iar.iar_date,
+                  iar.invoice_no_date, 
+                  ii.quantity, 
+                  i.unit, 
+                  ii.unit_price, 
+                  ii.total_price,
+                  i.item_description, 
+                  i.stock_no, 
+                  ii.remarks,
+                  iar.receiver_name, 
+                  iar.teacher_id, 
+                  iar.position,
+                  iar.date_inspected, 
+                  iar.inspectors, 
+                  iar.barangay_councilor,
+                  iar.pta_observer, 
+                  iar.date_received, 
+                  iar.property_custodian,
+                  ii.iar_item_id
+                FROM inspection_acceptance_reports iar
+                JOIN entities e ON iar.entity_id = e.entity_id
+                JOIN suppliers s ON iar.supplier_id = s.supplier_id
+                JOIN iar_items ii ON iar.iar_id = ii.iar_id
+                JOIN items i ON ii.item_id = i.item_id
+                WHERE iar.iar_id = ?";
+    }
 } else {
     $query = "SELECT * FROM `$source_table` WHERE id = ?";
 }
@@ -144,7 +285,9 @@ if (!$stmt) {
     die("Prepare failed: " . $mysqli->error . " Query was: " . $query);
 }
 
-$stmt->bind_param("i", $record_id);
+// Decide which parameter to bind based on what's available
+$param_id = ($item_id > 0) ? $item_id : $record_id;
+$stmt->bind_param("i", $param_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $item = $result->fetch_assoc();
@@ -326,7 +469,7 @@ require_once('partials/_head.php');
                                                 <label class="form-label">Remarks</label>
                                                 <input style="color: #000000; background-color: #f8f9fa;" type="text" class="form-control" value="<?php echo $item['remarks'] ?? 'N/A'; ?>" readonly>
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-6">
                                                 <label class="form-label">Purpose</label>
                                                 <input style="color: #000000; background-color: #f8f9fa;" type="text" class="form-control" value="<?php echo $item['purpose'] ?? 'N/A'; ?>" readonly>
                                             </div>

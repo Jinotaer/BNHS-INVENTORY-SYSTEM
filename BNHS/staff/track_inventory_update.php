@@ -23,11 +23,32 @@ $tables = [
 // Get parameters
 $source_table = isset($_GET['table']) ? $_GET['table'] : '';
 $record_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$item_id = isset($_GET['item_id']) ? intval($_GET['item_id']) : 0;
+
+// Map tables to their items tables
+$item_tables = [
+    'inspection_acceptance_reports' => 'iar_items',
+    'inventory_custodian_slips' => 'ics_items',
+    'requisition_and_issue_slips' => 'ris_items',
+    'property_acknowledgment_receipts' => 'par_items'
+];
+
+// Map item tables to their ID columns
+$item_id_columns = [
+    'iar_items' => 'iar_item_id',
+    'ics_items' => 'ics_item_id',
+    'ris_items' => 'ris_item_id',
+    'par_items' => 'par_item_id'
+];
 
 // Validate
-if (!in_array($source_table, $tables) || $record_id <= 0) {
+if (!in_array($source_table, $tables) || ($record_id <= 0 && $item_id <= 0)) {
     die("Invalid table or ID.");
 }
+
+// Get the correct items table and ID column
+$items_table = isset($item_tables[$source_table]) ? $item_tables[$source_table] : '';
+$item_id_column = isset($item_id_columns[$items_table]) ? $item_id_columns[$items_table] : '';
 
 // Fetch existing record
 $id_column = 'id';
@@ -40,43 +61,89 @@ switch($source_table) {
 
 // Modified query with JOIN to entities table where applicable
 if ($source_table == 'inspection_acceptance_reports') {
-    $query = "SELECT t.*, e.entity_name, e.fund_cluster,
-              i.item_id, i.quantity, i.unit_price, i.total_price, i.remarks,
-              itm.item_description, itm.unit, itm.unit_cost, itm.stock_no,
-              s.supplier_name, s.contact_info
-              FROM `$source_table` t 
-              JOIN entities e ON t.entity_id = e.entity_id 
-              LEFT JOIN iar_items i ON t.iar_id = i.iar_id
-              LEFT JOIN items itm ON i.item_id = itm.item_id
-              LEFT JOIN suppliers s ON t.supplier_id = s.supplier_id
-              WHERE t.$id_column = ?";
+    if ($item_id > 0 && !empty($item_id_column)) {
+        $query = "SELECT t.*, e.entity_name, e.fund_cluster,
+                  i.item_id, i.quantity, i.unit_price, i.total_price, i.remarks, i.iar_item_id,
+                  itm.item_description, itm.unit, itm.unit_cost, itm.stock_no,
+                  s.supplier_name, s.contact_info
+                  FROM `$source_table` t 
+                  JOIN entities e ON t.entity_id = e.entity_id 
+                  JOIN iar_items i ON t.iar_id = i.iar_id
+                  JOIN items itm ON i.item_id = itm.item_id
+                  LEFT JOIN suppliers s ON t.supplier_id = s.supplier_id
+                  WHERE i.iar_item_id = ?";
+    } else {
+        $query = "SELECT t.*, e.entity_name, e.fund_cluster,
+                  i.item_id, i.quantity, i.unit_price, i.total_price, i.remarks, i.iar_item_id,
+                  itm.item_description, itm.unit, itm.unit_cost, itm.stock_no,
+                  s.supplier_name, s.contact_info
+                  FROM `$source_table` t 
+                  JOIN entities e ON t.entity_id = e.entity_id 
+                  LEFT JOIN iar_items i ON t.iar_id = i.iar_id
+                  LEFT JOIN items itm ON i.item_id = itm.item_id
+                  LEFT JOIN suppliers s ON t.supplier_id = s.supplier_id
+                  WHERE t.$id_column = ?";
+    }
 } else if ($source_table == 'inventory_custodian_slips') {
-    $query = "SELECT t.*, e.entity_name, e.fund_cluster,
-              i.item_id, i.quantity, i.inventory_item_no,
-              itm.item_description, itm.unit, itm.unit_cost, itm.estimated_useful_life
-              FROM `$source_table` t 
-              JOIN entities e ON t.entity_id = e.entity_id 
-              LEFT JOIN ics_items i ON t.ics_id = i.ics_id
-              LEFT JOIN items itm ON i.item_id = itm.item_id
-              WHERE t.$id_column = ?";
+    if ($item_id > 0 && !empty($item_id_column)) {
+        $query = "SELECT t.*, e.entity_name, e.fund_cluster,
+                  i.item_id, i.quantity, i.inventory_item_no, i.ics_item_id,
+                  itm.item_description, itm.unit, itm.unit_cost, itm.estimated_useful_life
+                  FROM `$source_table` t 
+                  JOIN entities e ON t.entity_id = e.entity_id 
+                  JOIN ics_items i ON t.ics_id = i.ics_id
+                  JOIN items itm ON i.item_id = itm.item_id
+                  WHERE i.ics_item_id = ?";
+    } else {
+        $query = "SELECT t.*, e.entity_name, e.fund_cluster,
+                  i.item_id, i.quantity, i.inventory_item_no, i.ics_item_id,
+                  itm.item_description, itm.unit, itm.unit_cost, itm.estimated_useful_life
+                  FROM `$source_table` t 
+                  JOIN entities e ON t.entity_id = e.entity_id 
+                  LEFT JOIN ics_items i ON t.ics_id = i.ics_id
+                  LEFT JOIN items itm ON i.item_id = itm.item_id
+                  WHERE t.$id_column = ?";
+    }
 } else if ($source_table == 'requisition_and_issue_slips') {
-    $query = "SELECT t.*, e.entity_name, e.fund_cluster,
-              i.item_id, i.requested_qty, i.issued_qty, i.stock_available, i.remarks,
-              itm.item_description, itm.unit, itm.unit_cost, itm.stock_no
-              FROM `$source_table` t 
-              JOIN entities e ON t.entity_id = e.entity_id 
-              LEFT JOIN ris_items i ON t.ris_id = i.ris_id
-              LEFT JOIN items itm ON i.item_id = itm.item_id
-              WHERE t.$id_column = ?";
+    if ($item_id > 0 && !empty($item_id_column)) {
+        $query = "SELECT t.*, e.entity_name, e.fund_cluster,
+                  i.item_id, i.requested_qty, i.issued_qty, i.stock_available, i.remarks, i.ris_item_id,
+                  itm.item_description, itm.unit, itm.unit_cost, itm.stock_no
+                  FROM `$source_table` t 
+                  JOIN entities e ON t.entity_id = e.entity_id 
+                  JOIN ris_items i ON t.ris_id = i.ris_id
+                  JOIN items itm ON i.item_id = itm.item_id
+                  WHERE i.ris_item_id = ?";
+    } else {
+        $query = "SELECT t.*, e.entity_name, e.fund_cluster,
+                  i.item_id, i.requested_qty, i.issued_qty, i.stock_available, i.remarks, i.ris_item_id,
+                  itm.item_description, itm.unit, itm.unit_cost, itm.stock_no
+                  FROM `$source_table` t 
+                  JOIN entities e ON t.entity_id = e.entity_id 
+                  LEFT JOIN ris_items i ON t.ris_id = i.ris_id
+                  LEFT JOIN items itm ON i.item_id = itm.item_id
+                  WHERE t.$id_column = ?";
+    }
 } else if ($source_table == 'property_acknowledgment_receipts') {
-    $query = "SELECT t.*, e.entity_name, e.fund_cluster,
-              i.item_id, i.quantity, i.property_number,
-              itm.item_description, itm.unit, itm.unit_cost
-              FROM `$source_table` t 
-              JOIN entities e ON t.entity_id = e.entity_id 
-              LEFT JOIN par_items i ON t.par_id = i.par_id
-              LEFT JOIN items itm ON i.item_id = itm.item_id
-              WHERE t.$id_column = ?";
+    if ($item_id > 0 && !empty($item_id_column)) {
+        $query = "SELECT t.*, e.entity_name, e.fund_cluster,
+                  i.item_id, i.quantity, i.property_number, i.par_item_id,
+                  itm.item_description, itm.unit, itm.unit_cost
+                  FROM `$source_table` t 
+                  JOIN entities e ON t.entity_id = e.entity_id 
+                  JOIN par_items i ON t.par_id = i.par_id
+                  JOIN items itm ON i.item_id = itm.item_id
+                  WHERE i.par_item_id = ?";
+    } else {
+        $query = "SELECT t.*, e.entity_name, e.fund_cluster,
+                  i.item_id, i.quantity, i.property_number, i.par_item_id,
+                  itm.item_description, itm.unit, itm.unit_cost
+                  FROM `$source_table` t 
+                  JOIN entities e ON t.entity_id = e.entity_id 
+                  LEFT JOIN par_items i ON t.par_id = i.par_id
+                  LEFT JOIN items itm ON i.item_id = itm.item_id
+                  WHERE t.$id_column = ?";
+    }
 } else {
     $query = "SELECT * FROM `$source_table` WHERE $id_column = ?";
 }
@@ -85,7 +152,10 @@ $stmt = $mysqli->prepare($query);
 if ($stmt === false) {
     die("Error preparing statement: " . $mysqli->error);
 }
-$stmt->bind_param("i", $record_id);
+
+// Decide which parameter to bind based on what's available
+$param_id = ($item_id > 0) ? $item_id : $record_id;
+$stmt->bind_param("i", $param_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $item = $result->fetch_assoc();
@@ -249,135 +319,258 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
                             $unit_price = floatval($_POST['unit_price']);
                             $total_price = $quantity * $unit_price;
                             
-                            // Find the first iar_item_id for this IAR
-                            $find_sql = "SELECT iar_item_id FROM iar_items WHERE iar_id = ? LIMIT 1";
-                            $find_stmt = $mysqli->prepare($find_sql);
-                            if ($find_stmt) {
-                                $find_stmt->bind_param('i', $record_id);
-                                $find_stmt->execute();
-                                $find_result = $find_stmt->get_result();
-                                if ($row = $find_result->fetch_assoc()) {
-                                    $iar_item_id = $row['iar_item_id'];
-                                    
-                                    // Update the iar_items table
-                                    $update_sql = "UPDATE iar_items SET quantity = ?, unit_price = ?, total_price = ? WHERE iar_item_id = ?";
-                                    $update_stmt = $mysqli->prepare($update_sql);
-                                    if ($update_stmt) {
-                                        $update_stmt->bind_param('iddi', $quantity, $unit_price, $total_price, $iar_item_id);
-                                        $update_stmt->execute();
-                                        $update_stmt->close();
-                                    }
+                            // Use item_id if provided, otherwise find the first item
+                            if ($item_id > 0) {
+                                $iar_item_id = $item_id;
+                                
+                                // Update the iar_items table directly with the provided item_id
+                                $update_sql = "UPDATE iar_items SET quantity = ?, unit_price = ?, total_price = ? WHERE iar_item_id = ?";
+                                $update_stmt = $mysqli->prepare($update_sql);
+                                if ($update_stmt) {
+                                    $update_stmt->bind_param('iddi', $quantity, $unit_price, $total_price, $iar_item_id);
+                                    $update_stmt->execute();
+                                    $update_stmt->close();
                                 }
-                                $find_stmt->close();
+                            } else {
+                                // Find the first iar_item_id for this IAR
+                                $find_sql = "SELECT iar_item_id FROM iar_items WHERE iar_id = ? LIMIT 1";
+                                $find_stmt = $mysqli->prepare($find_sql);
+                                if ($find_stmt) {
+                                    $find_stmt->bind_param('i', $record_id);
+                                    $find_stmt->execute();
+                                    $find_result = $find_stmt->get_result();
+                                    if ($row = $find_result->fetch_assoc()) {
+                                        $iar_item_id = $row['iar_item_id'];
+                                        
+                                        // Update the iar_items table
+                                        $update_sql = "UPDATE iar_items SET quantity = ?, unit_price = ?, total_price = ? WHERE iar_item_id = ?";
+                                        $update_stmt = $mysqli->prepare($update_sql);
+                                        if ($update_stmt) {
+                                            $update_stmt->bind_param('iddi', $quantity, $unit_price, $total_price, $iar_item_id);
+                                            $update_stmt->execute();
+                                            $update_stmt->close();
+                                        }
+                                    }
+                                    $find_stmt->close();
+                                }
                             }
                         } 
                         else if ($source_table == 'inventory_custodian_slips' && isset($_POST['quantity']) && isset($_POST['unit_cost'])) {
                             $quantity = intval($_POST['quantity']);
                             $unit_cost = floatval($_POST['unit_cost']);
                             
-                            // Find the first ics_item_id for this ICS
-                            $find_sql = "SELECT ics_item_id, item_id FROM ics_items WHERE ics_id = ? LIMIT 1";
-                            $find_stmt = $mysqli->prepare($find_sql);
-                            if ($find_stmt) {
-                                $find_stmt->bind_param('i', $record_id);
-                                $find_stmt->execute();
-                                $find_result = $find_stmt->get_result();
-                                if ($row = $find_result->fetch_assoc()) {
-                                    $ics_item_id = $row['ics_item_id'];
-                                    $item_id = $row['item_id'];
-                                    
-                                    // Update the ics_items table
-                                    $update_sql = "UPDATE ics_items SET quantity = ? WHERE ics_item_id = ?";
-                                    $update_stmt = $mysqli->prepare($update_sql);
-                                    if ($update_stmt) {
-                                        $update_stmt->bind_param('ii', $quantity, $ics_item_id);
-                                        $update_stmt->execute();
-                                        $update_stmt->close();
+                            // Use item_id if provided, otherwise find the first item
+                            if ($item_id > 0) {
+                                $ics_item_id = $item_id;
+                                
+                                // Get the item_id for this ICS item
+                                $find_item_sql = "SELECT item_id FROM ics_items WHERE ics_item_id = ?";
+                                $find_item_stmt = $mysqli->prepare($find_item_sql);
+                                if ($find_item_stmt) {
+                                    $find_item_stmt->bind_param('i', $ics_item_id);
+                                    $find_item_stmt->execute();
+                                    $find_item_result = $find_item_stmt->get_result();
+                                    if ($row = $find_item_result->fetch_assoc()) {
+                                        $item_id = $row['item_id'];
+                                        
+                                        // Update the ics_items table
+                                        $update_sql = "UPDATE ics_items SET quantity = ? WHERE ics_item_id = ?";
+                                        $update_stmt = $mysqli->prepare($update_sql);
+                                        if ($update_stmt) {
+                                            $update_stmt->bind_param('ii', $quantity, $ics_item_id);
+                                            $update_stmt->execute();
+                                            $update_stmt->close();
+                                        }
+                                        
+                                        // Update the items table with new unit_cost
+                                        $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
+                                        $update_items_stmt = $mysqli->prepare($update_items_sql);
+                                        if ($update_items_stmt) {
+                                            $update_items_stmt->bind_param('di', $unit_cost, $item_id);
+                                            $update_items_stmt->execute();
+                                            $update_items_stmt->close();
+                                        }
                                     }
-                                    
-                                    // Update the items table with new unit_cost
-                                    $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
-                                    $update_items_stmt = $mysqli->prepare($update_items_sql);
-                                    if ($update_items_stmt) {
-                                        $update_items_stmt->bind_param('di', $unit_cost, $item_id);
-                                        $update_items_stmt->execute();
-                                        $update_items_stmt->close();
-                                    }
+                                    $find_item_stmt->close();
                                 }
-                                $find_stmt->close();
+                            } else {
+                                // Find the first ics_item_id for this ICS
+                                $find_sql = "SELECT ics_item_id, item_id FROM ics_items WHERE ics_id = ? LIMIT 1";
+                                $find_stmt = $mysqli->prepare($find_sql);
+                                if ($find_stmt) {
+                                    $find_stmt->bind_param('i', $record_id);
+                                    $find_stmt->execute();
+                                    $find_result = $find_stmt->get_result();
+                                    if ($row = $find_result->fetch_assoc()) {
+                                        $ics_item_id = $row['ics_item_id'];
+                                        $item_id = $row['item_id'];
+                                        
+                                        // Update the ics_items table
+                                        $update_sql = "UPDATE ics_items SET quantity = ? WHERE ics_item_id = ?";
+                                        $update_stmt = $mysqli->prepare($update_sql);
+                                        if ($update_stmt) {
+                                            $update_stmt->bind_param('ii', $quantity, $ics_item_id);
+                                            $update_stmt->execute();
+                                            $update_stmt->close();
+                                        }
+                                        
+                                        // Update the items table with new unit_cost
+                                        $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
+                                        $update_items_stmt = $mysqli->prepare($update_items_sql);
+                                        if ($update_items_stmt) {
+                                            $update_items_stmt->bind_param('di', $unit_cost, $item_id);
+                                            $update_items_stmt->execute();
+                                            $update_items_stmt->close();
+                                        }
+                                    }
+                                    $find_stmt->close();
+                                }
                             }
                         } 
                         else if ($source_table == 'requisition_and_issue_slips' && isset($_POST['requested_qty']) && isset($_POST['unit_cost'])) {
                             $requested_qty = intval($_POST['requested_qty']);
                             $unit_cost = floatval($_POST['unit_cost']);
                             
-                            // Find the first ris_item_id for this RIS
-                            $find_sql = "SELECT ris_item_id, item_id FROM ris_items WHERE ris_id = ? LIMIT 1";
-                            $find_stmt = $mysqli->prepare($find_sql);
-                            if ($find_stmt) {
-                                $find_stmt->bind_param('i', $record_id);
-                                $find_stmt->execute();
-                                $find_result = $find_stmt->get_result();
-                                if ($row = $find_result->fetch_assoc()) {
-                                    $ris_item_id = $row['ris_item_id'];
-                                    $item_id = $row['item_id'];
-                                    
-                                    // Update the ris_items table
-                                    $update_sql = "UPDATE ris_items SET requested_qty = ?, stock_available = ? WHERE ris_item_id = ?";
-                                    $update_stmt = $mysqli->prepare($update_sql);
-                                    if ($update_stmt) {
-                                        $stock_available = isset($_POST['stock_available']) ? $_POST['stock_available'] : 'no';
-                                        $update_stmt->bind_param('isi', $requested_qty, $stock_available, $ris_item_id);
-                                        $update_stmt->execute();
-                                        $update_stmt->close();
+                            // Use item_id if provided, otherwise find the first item
+                            if ($item_id > 0) {
+                                $ris_item_id = $item_id;
+                                
+                                // Get the item_id for this RIS item
+                                $find_item_sql = "SELECT item_id FROM ris_items WHERE ris_item_id = ?";
+                                $find_item_stmt = $mysqli->prepare($find_item_sql);
+                                if ($find_item_stmt) {
+                                    $find_item_stmt->bind_param('i', $ris_item_id);
+                                    $find_item_stmt->execute();
+                                    $find_item_result = $find_item_stmt->get_result();
+                                    if ($row = $find_item_result->fetch_assoc()) {
+                                        $item_id = $row['item_id'];
+                                        
+                                        // Update the ris_items table
+                                        $update_sql = "UPDATE ris_items SET requested_qty = ?, stock_available = ? WHERE ris_item_id = ?";
+                                        $update_stmt = $mysqli->prepare($update_sql);
+                                        if ($update_stmt) {
+                                            $stock_available = isset($_POST['stock_available']) ? $_POST['stock_available'] : 'no';
+                                            $update_stmt->bind_param('isi', $requested_qty, $stock_available, $ris_item_id);
+                                            $update_stmt->execute();
+                                            $update_stmt->close();
+                                        }
+                                        
+                                        // Update the items table with new unit_cost
+                                        $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
+                                        $update_items_stmt = $mysqli->prepare($update_items_sql);
+                                        if ($update_items_stmt) {   
+                                            $update_items_stmt->bind_param('di', $unit_cost, $item_id);
+                                            $update_items_stmt->execute();
+                                            $update_items_stmt->close();
+                                        }
                                     }
-                                    
-                                    // Update the items table with new unit_cost
-                                    $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
-                                    $update_items_stmt = $mysqli->prepare($update_items_sql);
-                                    if ($update_items_stmt) {   
-                                        $update_items_stmt->bind_param('di', $unit_cost, $item_id);
-                                        $update_items_stmt->execute();
-                                        $update_items_stmt->close();
-                                    }
+                                    $find_item_stmt->close();
                                 }
-                                $find_stmt->close();
+                            } else {
+                                // Find the first ris_item_id for this RIS
+                                $find_sql = "SELECT ris_item_id, item_id FROM ris_items WHERE ris_id = ? LIMIT 1";
+                                $find_stmt = $mysqli->prepare($find_sql);
+                                if ($find_stmt) {
+                                    $find_stmt->bind_param('i', $record_id);
+                                    $find_stmt->execute();
+                                    $find_result = $find_stmt->get_result();
+                                    if ($row = $find_result->fetch_assoc()) {
+                                        $ris_item_id = $row['ris_item_id'];
+                                        $item_id = $row['item_id'];
+                                        
+                                        // Update the ris_items table
+                                        $update_sql = "UPDATE ris_items SET requested_qty = ?, stock_available = ? WHERE ris_item_id = ?";
+                                        $update_stmt = $mysqli->prepare($update_sql);
+                                        if ($update_stmt) {
+                                            $stock_available = isset($_POST['stock_available']) ? $_POST['stock_available'] : 'no';
+                                            $update_stmt->bind_param('isi', $requested_qty, $stock_available, $ris_item_id);
+                                            $update_stmt->execute();
+                                            $update_stmt->close();
+                                        }
+                                        
+                                        // Update the items table with new unit_cost
+                                        $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
+                                        $update_items_stmt = $mysqli->prepare($update_items_sql);
+                                        if ($update_items_stmt) {   
+                                            $update_items_stmt->bind_param('di', $unit_cost, $item_id);
+                                            $update_items_stmt->execute();
+                                            $update_items_stmt->close();
+                                        }
+                                    }
+                                    $find_stmt->close();
+                                }
                             }
                         } 
                         else if ($source_table == 'property_acknowledgment_receipts' && isset($_POST['quantity']) && isset($_POST['unit_cost'])) {
                             $quantity = intval($_POST['quantity']);
                             $unit_cost = floatval($_POST['unit_cost']);
                             
-                            // Find the first par_item_id for this PAR
-                            $find_sql = "SELECT par_item_id, item_id FROM par_items WHERE par_id = ? LIMIT 1";
-                            $find_stmt = $mysqli->prepare($find_sql);
-                            if ($find_stmt) {
-                                $find_stmt->bind_param('i', $record_id);
-                                $find_stmt->execute();
-                                $find_result = $find_stmt->get_result();
-                                if ($row = $find_result->fetch_assoc()) {
-                                    $par_item_id = $row['par_item_id'];
-                                    $item_id = $row['item_id'];
-                                    
-                                    // Update the par_items table
-                                    $update_sql = "UPDATE par_items SET quantity = ? WHERE par_item_id = ?";
-                                    $update_stmt = $mysqli->prepare($update_sql);
-                                    if ($update_stmt) {
-                                        $update_stmt->bind_param('ii', $quantity, $par_item_id);
-                                        $update_stmt->execute();
-                                        $update_stmt->close();
+                            // Use item_id if provided, otherwise find the first item
+                            if ($item_id > 0) {
+                                $par_item_id = $item_id;
+                                
+                                // Get the item_id for this PAR item
+                                $find_item_sql = "SELECT item_id FROM par_items WHERE par_item_id = ?";
+                                $find_item_stmt = $mysqli->prepare($find_item_sql);
+                                if ($find_item_stmt) {
+                                    $find_item_stmt->bind_param('i', $par_item_id);
+                                    $find_item_stmt->execute();
+                                    $find_item_result = $find_item_stmt->get_result();
+                                    if ($row = $find_item_result->fetch_assoc()) {
+                                        $item_id = $row['item_id'];
+                                        
+                                        // Update the par_items table
+                                        $update_sql = "UPDATE par_items SET quantity = ? WHERE par_item_id = ?";
+                                        $update_stmt = $mysqli->prepare($update_sql);
+                                        if ($update_stmt) {
+                                            $update_stmt->bind_param('ii', $quantity, $par_item_id);
+                                            $update_stmt->execute();
+                                            $update_stmt->close();
+                                        }
+                                        
+                                        // Update the items table with new unit_cost
+                                        $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
+                                        $update_items_stmt = $mysqli->prepare($update_items_sql);
+                                        if ($update_items_stmt) {
+                                            $update_items_stmt->bind_param('di', $unit_cost, $item_id);
+                                            $update_items_stmt->execute();
+                                            $update_items_stmt->close();
+                                        }
                                     }
-                                    
-                                    // Update the items table with new unit_cost
-                                    $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
-                                    $update_items_stmt = $mysqli->prepare($update_items_sql);
-                                    if ($update_items_stmt) {
-                                        $update_items_stmt->bind_param('di', $unit_cost, $item_id);
-                                        $update_items_stmt->execute();
-                                        $update_items_stmt->close();
-                                    }
+                                    $find_item_stmt->close();
                                 }
-                                $find_stmt->close();
+                            } else {
+                                // Find the first par_item_id for this PAR
+                                $find_sql = "SELECT par_item_id, item_id FROM par_items WHERE par_id = ? LIMIT 1";
+                                $find_stmt = $mysqli->prepare($find_sql);
+                                if ($find_stmt) {
+                                    $find_stmt->bind_param('i', $record_id);
+                                    $find_stmt->execute();
+                                    $find_result = $find_stmt->get_result();
+                                    if ($row = $find_result->fetch_assoc()) {
+                                        $par_item_id = $row['par_item_id'];
+                                        $item_id = $row['item_id'];
+                                        
+                                        // Update the par_items table
+                                        $update_sql = "UPDATE par_items SET quantity = ? WHERE par_item_id = ?";
+                                        $update_stmt = $mysqli->prepare($update_sql);
+                                        if ($update_stmt) {
+                                            $update_stmt->bind_param('ii', $quantity, $par_item_id);
+                                            $update_stmt->execute();
+                                            $update_stmt->close();
+                                        }
+                                        
+                                        // Update the items table with new unit_cost
+                                        $update_items_sql = "UPDATE items SET unit_cost = ? WHERE item_id = ?";
+                                        $update_items_stmt = $mysqli->prepare($update_items_sql);
+                                        if ($update_items_stmt) {
+                                            $update_items_stmt->bind_param('di', $unit_cost, $item_id);
+                                            $update_items_stmt->execute();
+                                            $update_items_stmt->close();
+                                        }
+                                    }
+                                    $find_stmt->close();
+                                }
                             }
                         }
                         

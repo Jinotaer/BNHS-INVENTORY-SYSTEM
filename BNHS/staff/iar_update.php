@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] == "POST") {
   $pta_observer = sanitize($_POST['pta_observer']);
   $date_received = sanitize($_POST['date_received']);
   $property_custodian = sanitize($_POST['property_custodian']);
-  $update = $_GET['update']; // Get the IAR ID from the URL parameter
+  // $update = $_GET['update']; // Get the IAR ID from the URL parameter
   
   // Check if we're updating a specific item
   if (isset($_GET['update_item']) && isset($_GET['item_id'])) {

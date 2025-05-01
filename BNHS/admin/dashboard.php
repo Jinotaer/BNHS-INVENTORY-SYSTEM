@@ -52,7 +52,7 @@ function getCount($mysqli, $table)
             $stats = [
               [
                 'title' => 'Inspection Acceptance Reports',
-                'count' => getCount($mysqli, 'inspection_acceptance_reports'),
+                'count' => getCount($mysqli, 'iar_items'),
                 'icon' => 'fact_check',
                 'color' => 'danger'
               ],
@@ -64,13 +64,13 @@ function getCount($mysqli, $table)
               ],
               [
                 'title' => 'Property Ack. Receipt',
-                'count' => getCount($mysqli, 'property_acknowledgment_receipts'),
+                'count' => getCount($mysqli, 'par_items'),
                 'icon' => 'receipt_long',
                 'color' => 'warning'
               ],
               [
                 'title' => 'Requisition and Issue Slip',
-                'count' => getCount($mysqli, 'requisition_and_issue_slips'),
+                'count' => getCount($mysqli, 'ris_items'),
                 'icon' => 'request_quote',
                 'color' => 'success'
               ]
@@ -105,7 +105,7 @@ function getCount($mysqli, $table)
 
     <!-- Page content -->
     <div class="container-fluid mt--7">
-      <div class="row mt-5">
+      <div class="row mt-5">  
         <div class="col-xl-12 mb-5 mb-xl-0">
           <div class="card shadow">
             <div class="card-header border-0">

@@ -60,6 +60,7 @@ require_once('partials/_head.php');
                     <th scope="col">ID</th>
                     <th scope="col">Full Name</th>
                     <th scope="col">Email</th>
+                    <!-- <th></th> -->
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>

@@ -25,7 +25,6 @@ if (isset($_POST['addstaff'])) {
     
     if($res->num_rows > 0) {
       $err = "Email already exists";
-      header("refresh:1; url=add_staff.php");
     } else {
       //Insert Captured information to a database table
       $postQuery = "INSERT INTO bnhs_staff (staff_id, staff_name, staff_email, staff_password) VALUES(?,?,?,?)";
@@ -35,7 +34,8 @@ if (isset($_POST['addstaff'])) {
       $postStmt->execute();
       //declare a varible which will be passed to alert function
       if ($postStmt) {
-        $success = "Staff Added Successfully" && header("refresh:1; url=user_management.php");
+        $success = "Staff Added Successfully";
+        header("refresh:1; url=user_management.php");
       } else {
         $err = "Please Try Again Or Try Later";
       }
@@ -73,46 +73,42 @@ require_once('partials/_head.php');
         <div class="col">
           <div class="card shadow">
             <div class="card-header border-0">
-              <h3>Please fill all fields</h3>
+              <h3>Please fill all fields and click Add Staff</h3>
             </div>
             <div class="card-body">
               <form method="POST">
                 <div class="form-row">
                   <div class="col-md-6">
                     <label>Staff ID</label>
-                    <input type="text" name="staff_id" class="form-control" style="color: black;" value=""> <!-- Added visible input for Staff ID -->
+                    <input type="number" name="staff_id" class="form-control" style="color: black;">
                   </div>
                   <div class="col-md-6">
                     <label>Staff Name</label>
-                    <input type="text" name="staff_name" class="form-control" style="color: black;" value=""> <!-- Corrected 'stafS_name' to 'staff_name' -->
+                    <input type="text" name="staff_name" class="form-control" style="color: black;">
                   </div>
                 </div>
                 <hr>
                 <div class="form-row" style="margin-top: 10px;">
                   <div class="col-md-6">
                     <label>Staff Email</label>
-                    <input type="email" name="staff_email" class="form-control" style="color: black;" value="">
+                    <input type="email" name="staff_email" class="form-control" style="color: black;">
                   </div>
                   <div class="col-md-6">
                     <label>Staff Password</label>
-                    <input type="password" name="staff_password" class="form-control" style="color: black;" value="">
+                    <input type="password" name="staff_password" class="form-control" style="color: black;">
                   </div>
                 </div>
                 <hr>
                 <div class="form-row">
                   <div class="col-md-6">
-                    <label>Staff Password</label>
-                    <input type="password" name="staff_pass_confirm" class="form-control" style="color: black;" value=""  >
+                    <label>Confirm Password</label>
+                    <input type="password" name="staff_pass_confirm" class="form-control" style="color: black;">
                   </div>
-                  <!-- <div class="col-md-6">
-                    <label>Staff Phone Number</label>
-                    <input type="text" name="staff_phoneno" class="form-control" value="">
-                  </div> -->
                 </div>
                 <br>
                 <div class="form-row">
                   <div class="col-md-6">
-                    <input type="submit" name="addstaff" value="Add staff" class="btn btn-primary" value="">
+                    <input type="submit" name="addstaff" value="Add Staff" class="btn btn-primary">
                   </div>
                 </div>
               </form>

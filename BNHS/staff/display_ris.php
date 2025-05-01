@@ -114,11 +114,11 @@ require_once('partials/_head.php');
               <div class="col">
                 <h2 class="text-center mb-3 pt-3 text-uppercase">Requisition and Issue Slip</h2>
               </div>
-              <div class="col text-right">
+              <!-- <div class="col text-right">
                 <a href="print_all_ris_files.php" class="btn btn-sm btn-primary" target="_blank">
                   <i class="fas fa-print"></i> Print All RIS
                 </a>
-              </div>
+              </div> -->
             </div>
             <div class="table-responsive">
               <table class="table align-items-center table-flush">

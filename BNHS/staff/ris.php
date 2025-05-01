@@ -333,13 +333,9 @@ require_once('partials/_head.php');
                       <label class="form-label">Fund Cluster</label>
                       <select style="color: #000000;" class="form-control<?php if(isset($errors['fund_cluster'])) echo ' is-invalid'; ?>" name="fund_cluster" required>
                         <option value="">Select Fund Cluster</option>
-                        <option value="MOE" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'MOOE') ? 'selected' : ''; ?>>MOE</option>
                         <option value="Division" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'Division') ? 'selected' : ''; ?>>Division</option>
                         <option value="MCE" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'MCE') ? 'selected' : ''; ?>>MCE</option>
-                        <option value="SHS" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'SHS') ? 'selected' : ''; ?>>SHS</option>
-                        <option value="JHS" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'JHS') ? 'selected' : ''; ?>>JHS</option>
-                        <option value="SPED" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'SPED') ? 'selected' : ''; ?>>SPED</option>
-                        <option value="ALS" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'ALS') ? 'selected' : ''; ?>>ALS</option>
+                        <option value="MOE" <?php echo (isset($form_values['fund_cluster']) && $form_values['fund_cluster'] == 'MOE') ? 'selected' : ''; ?>>MOE</option>
                       </select>
                       <?php if(isset($errors['fund_cluster'])): ?><div class="invalid-feedback"><?php echo $errors['fund_cluster']; ?></div><?php endif; ?>
                     </div>
