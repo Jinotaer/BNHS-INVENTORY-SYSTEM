@@ -150,14 +150,37 @@ require_once('partials/_head.php');
         <div class="col">
           <div class="card shadow">
             <div class="card-header border-0">
-              <form class="form-inline" method="GET" style="color: black; float: left; margin-top: 20px; margin-bottom: 20px;">
-                <input id="search" class="form-control mr-sm-2" style="width: 500px; color: black;" type="search" name="item"
-                  placeholder="Search by Item Description or End User" aria-label="Search"
-                  value="<?php echo isset($_GET['item']) ? htmlspecialchars($_GET['item']) : ''; ?>">
-              </form>
+              <div class="row align-items-center">
+                <div class="col-8">
+                  <h3 class="mb-0">Inventory Tracking</h3>
+                </div>
+                <div class="col-4 text-right">
+                  <select id="entries-select" class="custom-select custom-select-sm w-auto mr-2">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                  <span class="mr-2">entries per page</span>
+                </div>
+              </div>
+              <div class="row mt-3">
+                <div class="col-md-6">
+                  <form class="form-inline" method="GET">
+                    <div class="input-group w-100">
+                      <div class="input-group-prepend">
+                        <span class="input-group-text">Search:</span>
+                      </div>
+                      <input style="color: #000000" id="search" class="form-control" type="search" name="item"
+                        placeholder="Search by Item Description or End User"
+                        value="<?php echo isset($_GET['item']) ? htmlspecialchars($_GET['item']) : ''; ?>">
+                    </div>
+                  </form>
+                </div>
+              </div>
             </div>
             <div class="table-responsive">
-              <table class="table align-items-center table-flush">
+              <table class="table align-items-center table-flush" id="inventoryTable">
                 <thead class="thead-light">
                   <tr>
                     <th scope="col">Source</th>
@@ -172,7 +195,7 @@ require_once('partials/_head.php');
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
-                <tbody class="list" id="userTableBody">
+                <tbody>
                   <?php
                   if (!empty($searchResults)) {
                     foreach ($searchResults as $item) {
@@ -379,25 +402,324 @@ require_once('partials/_head.php');
                     }
                   }
                   ?>
-                  <tr id="noResults" style="display: none;">
-                    <td colspan="10" class="text-center">No inventory items found.</td>
-                  </tr>
                 </tbody>
               </table>
+              
+              <div class="d-flex justify-content-between align-items-center mt-3 mb-3 px-3">
+              
             </div>
           </div>
         </div>
       </div>
-      <!-- Footer -->
-      <?php
-      require_once('partials/_mainfooter.php');
-      ?>
+    
     </div>
   </div>
+    <!-- Footer -->
+  <?php
+      require_once('partials/_mainfooter.php');
+  ?>
   <!-- Argon Scripts -->
   <?php
   require_once('partials/_scripts.php');
   ?>
+  
+  <!-- DataTables JS -->
+  <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap4.min.js"></script>
+  
+  <!-- Custom DataTable Initialization -->
+  <script>
+    $(document).ready(function() {
+      var table = $('#inventoryTable').DataTable({
+        "paging": true,
+        "lengthChange": true,
+        "searching": true,
+        "ordering": true,
+        "info": true,
+        "autoWidth": false,
+        "dom": '<"top"fl>rt<"bottom"<"info-container"i><"pagination-container"p>><"clear">',
+        "pagingType": "simple_numbers",
+        "language": {
+          "lengthMenu": "_MENU_ entries per page",
+          "zeroRecords": "No matching records found",
+          "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+          "infoEmpty": "Showing 0 to 0 of 0 entries",
+          "infoFiltered": "(filtered from _MAX_ total entries)",
+          "search": "Search:",
+          "paginate": {
+            "first": "«",
+            "last": "»",
+            "next": ">",
+            "previous": "<"
+          },
+          "emptyTable": "No data available in table",
+          "zeroRecords": "<div class='text-center p-4'>No matching records found</div>"
+        },
+        "initComplete": function() {
+          // Replace the DataTables search input with our custom form
+          $('.dataTables_filter').hide();
+          $('#search').on('keyup', function() {
+            table.search(this.value).draw();
+          });
+          
+          // Replace the DataTables length menu with our select
+          $('.dataTables_length').hide();
+          $('#entries-select').on('change', function() {
+            table.page.len($(this).val()).draw();
+          });
+          
+          // Make sure pagination is on the right
+          $('.dataTables_paginate').css('float', 'right');
+          
+          // Initialize search with current URL parameter if present
+          var urlParams = new URLSearchParams(window.location.search);
+          var searchParam = urlParams.get('item');
+          if (searchParam) {
+            $('#search').val(searchParam);
+            table.search(searchParam).draw();
+          }
+        }
+      });
+    });
+  </script>
+  
+  <!-- Custom Styles for DataTables -->
+  <style>
+    .pagination .page-link {
+      color: #5e72e4;
+      background-color: #fff;
+      border: 1px solid #dee2e6;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 3px;
+    }
+    .pagination .page-item.active .page-link {
+      z-index: 3;
+      color: #fff;
+      background-color: #5e72e4;
+      border-color: #5e72e4;
+    }
+    .pagination .page-item.disabled .page-link {
+      color: #6c757d;
+      pointer-events: none;
+      background-color: #fff;
+      border-color: #dee2e6;
+    }
+    #inventoryTable th {
+      cursor: pointer;
+      position: relative;
+    }
+    #inventoryTable th:after {
+      content: "";
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    #inventoryTable th.sorting_asc:after {
+      content: "▲";
+      font-size: 10px;
+    }
+    #inventoryTable th.sorting_desc:after {
+      content: "▼";
+      font-size: 10px;
+    }
+    .dataTables_info {
+      clear: both;
+      padding-left: 15px;
+      padding-top: 10px;
+      display: flex;
+      text-align: left;
+      width: 100%;
+      justify-content: left;
+      margin-top: 10px;
+    }
+    .pagination {
+      margin: 0;
+    }
+    .dataTables_paginate {
+      padding-right: 15px;
+      width: 100%;
+      text-align: left;
+      display: flex;
+      justify-content: left;
+    }
+    
+    /* Style for pagination buttons like in the image */
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+      border-radius: 50%;
+      padding: 0;
+      margin: 0 3px;
+      min-width: 36px;
+      height: 36px;
+      line-height: 36px;
+      text-align: center;
+      display: inline-block;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+      background: #5e72e4 !important;
+      color: white !important;
+      border-color: #5e72e4 !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+      background: #f0f2ff !important;
+      color: #5e72e4 !important;
+      border-color: #dee2e6 !important;
+    }
+    
+    /* Fix table header and prevent horizontal movement */
+    .table-responsive {
+      position: relative;
+      overflow-x: auto;
+    }
+    table.dataTable thead th{
+      position: sticky;
+      top: 0;
+      height: 45px;
+      background-color: #f6f9fc;
+      z-index: 10;
+    }
+    table.dataTable thead td {
+      position: sticky;
+      top: 0;
+      height: 50px;
+      padding:50px;
+      background-color: #f6f9fc;
+      z-index: 10;
+    }
+    .card-header {
+      position: sticky;
+      top: 0;
+      background-color: white;
+      z-index: 20;
+    }
+    
+    /* Ensure the table container has a fixed width */
+    .card.shadow {
+      overflow: hidden;
+    }
+    
+    /* Bottom container layout */
+    .dataTables_wrapper .bottom {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      position: relative;
+      border-top: 1px solid #e9ecef;
+      padding-top: 5px;
+      padding-left: 15px;
+      margin-top: 0;
+      background: white;
+    }
+    
+    /* Container for pagination */
+    .pagination-container {
+      width: 100%;
+      display: flex;
+      justify-content: left;
+      margin-top: 5px;
+      margin-bottom: 0px;
+    }
+    
+    /* Container for info */
+    .info-container {
+      width: 100%;
+      display: flex;
+      justify-content: left;
+      margin-bottom: 10px;
+    }
+    
+    /* Style the table rows like the image */
+    #inventoryTable tbody tr {
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    #inventoryTable tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+    
+    #inventoryTable td {
+      padding: 15px 12px;
+      padding-left: 25px;
+      vertical-align: middle;
+      color: #525f7f;
+    }
+    
+    #inventoryTable thead th {
+      background-color: #f8f9fc;
+      color: #8898aa;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 0.65rem;
+      border-bottom: 1px solid #e9ecef;
+      padding: 12px;
+      padding-left: 25px;
+      padding-right: 25px;
+    }
+    
+    /* Alternating row color */
+    #inventoryTable tbody tr:nth-of-type(odd) {
+      /* background-color: rgba(0, 0, 0, 0.01); */
+    }
+    
+    #inventoryTable tbody tr:last-child {
+      border-bottom: none;
+    }
+    
+    /* Fix the header appearance */
+    table.dataTable thead td {
+      position: sticky;
+      top: 0;
+      height: 50px;
+      padding: 12px;
+      padding-left: 25px;
+      padding-right: 25px;
+      background-color: #f8f9fc;
+      z-index: 10;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    /* First column specific padding */
+    #inventoryTable tbody tr td:first-child,
+    #inventoryTable thead th:first-child {
+      padding-left: 25px;
+    }
+    
+    /* Center the "No matching records found" message */
+    .dataTables_empty {
+      text-align: center !important;
+      padding: 0px !important;
+      font-weight: 500;
+      color: #8898aa;
+    }
+    
+    /* Footer styles */
+    .footer {
+      padding: 1.5rem 0;
+      margin-top: 2rem;
+      border-top: 1px solid #e9ecef;
+      background-color: #f6f9fc;
+    }
+    
+    .footer .copyright {
+      font-size: 0.875rem;
+      font-weight: 400;
+      color: #8898aa;
+    }
+    
+    .footer .nav-link {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+  </style>
 </body>
 
 </html>

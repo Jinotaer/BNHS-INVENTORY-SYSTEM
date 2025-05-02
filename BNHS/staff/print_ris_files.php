@@ -204,7 +204,7 @@ $ris = $res->fetch_object();
 
             <div class="table-responsive">
                 <table class="table table-bordered text-center align-middle">
-                    <thead class="table-light">
+                <thead class="table-light">
                         <tr>
                             <th class="tds" colspan="4" scope="col">Requisition</th>
                             <th class="tds" colspan="2" scope="col">Stock Available?</th>
@@ -214,11 +214,11 @@ $ris = $res->fetch_object();
                         <tr>
                             <th class="tds">Stock No.</th>
                             <th class="tds">Unit</th>
-                            <th class="tds">Description</th>
-                            <th class="tds">Quantity</th>
+                            <th class="tds" style="width: 30%;">Description</th>
+                            <th class="tds">REQ Quantity</th>
                             <th class="tds" scope="col">Yes</th>
-                            <th class="tds">No</th>
-                            <th class="tds">Quantity</th>
+                            <th class="tds" >No</th>
+                            <th class="tds">ISS Quantity</th>
                             <th class="tds">Remarks</th>
                         </tr>
                     </thead>
@@ -251,9 +251,9 @@ $ris = $res->fetch_object();
                                 <td class="tds"><?php echo htmlspecialchars($item->unit ?? ''); ?></td>
                                 <td class="tds"><?php echo htmlspecialchars($item->item_description ?? ''); ?></td>
                                 <td class="tds"><?php echo htmlspecialchars($item->requested_qty ?? ''); ?></td>
-                                <td class="tds"><?php echo $yes_mark; ?></td>
-                                <td class="tds"><?php echo $no_mark; ?></td>
-                                <td class="tds"><?php echo htmlspecialchars($item->issued_qty ?? ''); ?></td>
+                                <td class="tds" style="width: 10%;"><?php echo $yes_mark; ?></td>
+                                <td class="tds" style="width: 10%;"><?php echo $no_mark; ?></td>
+                                <td class="tds" style="width: 10%;"><?php echo htmlspecialchars($item->issued_qty ?? ''); ?></td>
                                 <td class="tds"><?php echo htmlspecialchars($item->remarks ?? ''); ?></td>
                             </tr>
                         <?php } ?>

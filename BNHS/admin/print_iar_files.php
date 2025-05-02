@@ -222,14 +222,14 @@ ob_start();
                    ₱<?php echo number_format($item->total_price ?? 0, 2); ?>
                 </td>
               </tr>
-              <tr>
-              <td class="tds" ></td>
-              <td class="tds" ></td>
-              <td class="tds" ></td>
-              <td class="tds" ></td>
+            
             </tr>
             <?php } ?>
-            <!-- Add blank row before total -->
+            <tr>
+              <td class="tds" ></td>
+              <td class="tds" ></td>
+              <td class="tds" ></td>
+              <td class="tds" ></td>
            
             <tr>
               <td colspan="3" class="text-end tds"><strong>TOTAL AMOUNT</strong></td>

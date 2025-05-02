@@ -9,6 +9,17 @@ while ($staff = $res->fetch_object()) {
 
   ?>
   <nav class="navbar navbar-vertical fixed-left navbar-expand-md navbar-light" id="sidenav-main" style="background: linear-gradient(to bottom right, #d9f0ff, #ffffff);">
+    <style>
+      .nav-link[data-toggle="collapse"]::after {
+        content: "▼" !important;
+        font-size: 10px;
+        color: #5f73e4;
+        margin-left: 6px;
+      }
+      .nav-link[data-toggle="collapse"][aria-expanded="true"]::after {
+        content: "▼" !important;
+      }
+    </style>
     <div class="container-fluid">
       <!-- Toggler -->
       <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#sidenav-collapse-main"
@@ -96,7 +107,7 @@ while ($staff = $res->fetch_object()) {
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#reportsSubmenu" data-toggle="collapse" aria-expanded="false">
+            <a class="nav-link" href="#reportsSubmenu" data-toggle="collapse" aria-expanded="false" style="display: flex; align-items: center;">
               <i><span class="material-icons-sharp text-primary">description</span></i> Reports
             </a>
             <ul class="collapse list-unstyled ml-3" id="reportsSubmenu">
@@ -123,7 +134,7 @@ while ($staff = $res->fetch_object()) {
             </ul>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#AuditsSubmenu" data-toggle="collapse" aria-expanded="false">
+            <a class="nav-link" href="#AuditsSubmenu" data-toggle="collapse" aria-expanded="false" style="display: flex; align-items: center;">
               <i><span class="material-icons-sharp text-primary">analytics</span></i> Audits
             </a>
             <ul class="collapse list-unstyled ml-3" id="AuditsSubmenu" >

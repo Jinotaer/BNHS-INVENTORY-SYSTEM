@@ -34,12 +34,12 @@ while ($staff = $res->fetch_object()) {
                             <h6 class="text-overflow m-0">Welcome!</h6>
                         </div>
                         <a href="change_profile.php" class="dropdown-item">
-                            <i class="ni ni-single-02"></i>
+                            <i class="material-icons-sharp text-primary mr-2">person</i>
                             <span>My profile</span>
                         </a>
                         <div class="dropdown-divider"></div>
                         <a href="logout.php" class="dropdown-item">
-                            <i class="ni ni-user-run"></i>
+                            <i class="material-icons-sharp text-primary mr-2">logout</i>
                             <span>Logout</span>
                         </a>
                     </div>

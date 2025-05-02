@@ -274,14 +274,18 @@ require_once('partials/_head.php');
   <?php require_once('partials/_scripts.php'); ?>
   
   <style>
-    .table-responsive {
+    /* .table-responsive {
       max-height: 500px;
       overflow-y: auto;
-    }
+    } */
     .btn-group {
       display: flex;
       gap: 5px;
     }
+    tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+    
   </style>
 </body>
 </html>

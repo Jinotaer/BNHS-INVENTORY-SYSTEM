@@ -194,7 +194,9 @@ ob_start(); // Start output buffering
                                 <td class="tds"><?php echo htmlspecialchars($par->date_acquired ?? ''); ?></td>
                                 <td class="tds"><?php echo htmlspecialchars($item->unit_cost ?? ''); ?></td>
                             </tr>
-                            <tr>
+                         
+                        <?php } ?>
+                        <tr>
                                 <td class="tds"></td>
                                 <td class="tds"></td>
                                 <td class="tds"></td>
@@ -202,7 +204,6 @@ ob_start(); // Start output buffering
                                 <td class="tds"></td>
                                 <td class="tds"></td>
                             </tr>
-                        <?php } ?>
                     </tbody>
                 </table>
             </div>

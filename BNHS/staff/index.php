@@ -68,7 +68,7 @@ require_once('partials/_inhead.php');
       <div class="links" style="text-align: end;">
         <a class="password" href="send_code.php">Forgot Password</a>
       </div>
-      <div class="g-recaptcha" data-sitekey="<?= htmlspecialchars($sitekey); ?>"></div>
+      <div class="g-recaptcha" style="margin-left:15px;" data-sitekey="<?= htmlspecialchars($sitekey); ?>"></div>
       <div class="input-field buttons" style="margin-top: 10px;">
         <button type="submit" name="login" style="background-color: #29126d;">LOGIN</button>
       </div>

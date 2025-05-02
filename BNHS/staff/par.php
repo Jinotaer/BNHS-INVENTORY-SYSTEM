@@ -454,10 +454,8 @@ require_once('partials/_head.php');
       <td>
         <select name="article[]" class="underline-input" required>
           <option value="">Select Article</option>
-          <option value="BUILDING">BUILDING</option>
-          <option value="LAND">LAND</option>
           <option value="IT EQUIPMENT">IT EQUIPMENT</option>
-          <option value="School Building">School Building</option>
+       
         </select>
       </td>
       <td><input type="text" name="item_description[]" class="underline-input" required></td>

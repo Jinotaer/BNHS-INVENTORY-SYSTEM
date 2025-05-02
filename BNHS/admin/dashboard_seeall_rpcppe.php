@@ -112,6 +112,11 @@ require_once('partials/_head.php');
       });
     });
   </script>
+  <style>
+    tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+  </style>
 </body>
 
 </html>

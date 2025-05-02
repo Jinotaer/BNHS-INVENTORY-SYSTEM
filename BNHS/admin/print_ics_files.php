@@ -210,7 +210,9 @@ ob_start(); // Start output buffering
                                     <td class="tds"><?php echo htmlspecialchars($item->inventory_item_no ?? ''); ?></td>
                                     <td class="tds"><?php echo htmlspecialchars($item->estimated_useful_life ?? ''); ?></td>
                                 </tr>
-                                <tr>
+                            
+                            <?php } ?>
+                            <tr>
                                     <td class="tds"></td>
                                     <td class="tds"></td>
                                     <td class="tds"></td>
@@ -219,7 +221,6 @@ ob_start(); // Start output buffering
                                     <td class="tds"></td>
                                     <td class="tds"></td>
                                 </tr>
-                            <?php } ?>
                         </tbody>
                     </table>
                 </div>

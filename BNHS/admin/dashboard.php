@@ -224,7 +224,7 @@ if (isset($_GET['delete_item']) && !isset($_GET['type'])) {
                 'color' => 'primary'
               ],
               [
-                'title' => 'Property Ack. Receipt',
+                'title' => 'Property Acknow - ledgment Receipt',
                 'count' => getCount($mysqli, 'par_items'),
                 'icon' => 'receipt_long',
                 'color' => 'warning'
@@ -540,7 +540,19 @@ if (isset($_GET['delete_item']) && !isset($_GET['type'])) {
   <script src="https://cdn.datatables.net/2.2.2/js/dataTables.min.js">
     let table = new DataTable('#parTable');
   </script>
-
+<style>
+    /* .table-responsive {
+      max-height: 500px;
+      overflow-y: auto;
+    } */
+    /* .btn-group {
+      display: flex;
+      gap: 5px;
+    } */
+    tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+  </style>
 </body>
 
 </html>

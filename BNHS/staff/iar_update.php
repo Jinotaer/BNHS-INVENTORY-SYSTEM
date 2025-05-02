@@ -367,12 +367,15 @@ require_once('partials/_head.php');
                           </div>
                           <div class="col-md-4">
                             <label class="form-label">Remarks</label>
-                            <select style="color: #000000;" class="form-control" name="remarks[]">
+                            <select style="color: #000000;" class="form-control" name="items[<?php echo $index; ?>][remarks]">
                               <option value="">Select Remarks</option>
-                              <option value="Consumable" <?php echo ($item['remarks'] == 'Consumable') ? 'selected' : ''; ?>>Consumable</option>
-                              <option value="Non-consumable" <?php echo ($item['remarks'] == 'Non-consumable') ? 'selected' : ''; ?>>Non-consumable</option>
+                              <option value="Consumable" <?php if (isset($item['remarks']) && $item['remarks'] == 'Consumable') echo 'selected'; ?>>Consumable</option>
+                              <option value="Non-Consumable" <?php if (isset($item['remarks']) && ($item['remarks'] == 'Non-Consumable' || $item['remarks'] == 'Non-consumable')) echo 'selected'; ?>>Non-Consumable</option>
+                              <?php if (isset($item['remarks']) && $item['remarks'] != 'Consumable' && $item['remarks'] != 'Non-Consumable' && $item['remarks'] != 'Non-consumable' && !empty($item['remarks'])): ?>
+                              <option value="<?php echo htmlspecialchars($item['remarks']); ?>" selected><?php echo htmlspecialchars($item['remarks']); ?></option>
+                              <?php endif; ?>
                             </select>
-                          </div>
+                          </div>  
                         </div>
                       </div>
                     </div>

@@ -469,7 +469,7 @@ require_once('partials/_head.php');
                         </div>
                         <div class="col-md-4">
                           <label class="form-label">Estimated Useful Life</label>
-                          <input style="color: #000000;" type="text" class="form-control" name="items[<?php echo $index; ?>][estimated_useful_life]" value="<?php echo htmlspecialchars($item->estimated_useful_life); ?>" required>
+                          <input style="color: #000000;" type="text" class="form-control" name="items[<?php echo $index; ?>][estimated_useful_life]" value="<?php echo htmlspecialchars($item->estimated_useful_life); ?>" required data-index="<?php echo $index; ?>">
                         </div>
                       </div>
                       
