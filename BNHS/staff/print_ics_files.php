@@ -189,14 +189,14 @@ ob_start(); // Start output buffering
                         </td>
                         <td class="half">
                             <br>
-                            <br>
+                            <!-- <br> -->
                             <p><strong>ICS No.: </strong><?php echo htmlspecialchars($ics->ics_no ?? ''); ?></p>
-                            <br>
-                            <br>
+                            <!-- <br> -->
+                             <br>
                         </td>
                     </tr>
                 </table>
-
+                <!-- <br> -->
                 <div class="table-responsive">
                     <table class="table table-bordered text-center align-middle">
                         <thead class="table-light">
@@ -251,13 +251,15 @@ ob_start(); // Start output buffering
                         <p style="text-align: left;"><strong>Received from:</strong></p>
                         <br>
                         <br>
-                        <p style="text-align: center;"><?php echo htmlspecialchars($ics->end_user_name ?? ''); ?></p>
+                        <p style="text-align: center; "><?php echo htmlspecialchars($ics->end_user_name ?? ''); ?></p>
                         <p style="text-align: center;">______________________________</p>
                         <p style="text-align: center;">Signature Over Printed Name</p>
+                        <br>
                         <br>
                         <p style="text-align: center; "><?php echo htmlspecialchars($ics->end_user_position ?? ''); ?></p>
                         <p style="text-align: center;">______________________________</p>
                         <p style="text-align: center;">Position/Office</p>
+                        <br>
                         <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($ics->end_user_date ?? ''); ?></p>
                         <p style="text-align: center;">______________________________</p>
@@ -274,9 +276,11 @@ ob_start(); // Start output buffering
                         <p style="text-align: center;">______________________________</p>
                         <p style="text-align: center;">Signature Over Printed Name</p>
                         <br>
+                        <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($ics->custodian_position ?? ''); ?></p>
                         <p style="text-align: center;">______________________________</p>
                         <p>Position/Office</p>
+                        <br>
                         <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($ics->custodian_date ?? ''); ?></p>
                         <p style="text-align: center;">______________________________</p>

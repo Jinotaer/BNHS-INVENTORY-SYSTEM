@@ -255,12 +255,14 @@ ob_start(); // Start output buffering
                         <br>
                         <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($header_data->custodian_name ?? ''); ?></p>
-                        <p style="text-align: center;">_________________________________________________________</p>
-                        <p style="text-align: center;">Signature over Printed Name of Supply and/or Property Custodian</p>
+                        <p style="text-align: center;">__________________________________________</p>
+                        <p style="text-align: center;">Signature over Printed Name of Supply</p>
+                        <br>
                         <br>
                         <p style="text-align: center; "><?php echo htmlspecialchars($header_data->custodian_position ?? ''); ?></p>
                         <p style="text-align: center;">______________________________</p>
                         <p>Position/Office</p>
+                        <br>
                         <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($header_data->custodian_date ?? ''); ?></p>
                         <p style="text-align: center;">______________________________</p>
@@ -273,12 +275,14 @@ ob_start(); // Start output buffering
                         <br>
                         <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($header_data->end_user_name ?? ''); ?></p>
-                        <p style="text-align: center;">________________________________________________</p>
+                        <p style="text-align: center;">____________________________________________</p>
                         <p style="text-align: center;">Signature over Printed Name of End User</p>
+                        <br>
                         <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($header_data->receiver_position ?? ''); ?></p>
                         <p style="text-align: center;">______________________________</p>
                         <p>Position/Office</p>
+                        <br>
                         <br>
                         <p style="text-align: center;"><?php echo htmlspecialchars($header_data->receiver_date ?? ''); ?></p>
                         <p style="text-align: center;">______________________________</p>

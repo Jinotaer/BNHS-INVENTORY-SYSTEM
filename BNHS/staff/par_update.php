@@ -389,7 +389,7 @@ require_once('partials/_head.php');
                   <?php endforeach; ?>
 
                   <div class="text-end mt-3">
-                    <button type="submit" name="update" class="btn btn-primary">Update Items</button>
+                    <button type="submit" name="update" class="btn btn-primary">Update</button>
                   </div>
                 </div>
               </form>

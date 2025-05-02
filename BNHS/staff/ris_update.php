@@ -379,7 +379,7 @@ require_once('partials/_head.php');
                     <input type="hidden" name="ris_id" value="<?php echo $_GET['update']; ?>">
 
                     <div class="text-end mt-3">
-                      <button type="submit" name="update" class="btn btn-primary">Update All Items</button>
+                      <button type="submit" name="update" class="btn btn-primary">Update</button>
                     </div>
                   </div>
                 </form>

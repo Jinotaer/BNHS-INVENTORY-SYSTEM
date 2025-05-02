@@ -29,7 +29,7 @@ $fund_cluster = isset($entity_data->fund_cluster) ? $entity_data->fund_cluster :
 // Setup mPDF
 $mpdf = new \Mpdf\Mpdf([
     'mode' => 'utf-8',
-    'format' => 'A4-P', // Landscape format for wider table
+    'format' => 'A4-L', // Landscape format for wider table
     'margin_left' => 15,
     'margin_right' => 15,
     'margin_top' => 16,
@@ -250,7 +250,7 @@ ob_start();
     <div class="header">
         <img src="assets/img/brand/bnhs.png" alt="BNHS Logo" class="logo">
         <h4 class="title">REPORT ON THE PHYSICAL COUNT OF SEMI-EXPENDABLE PROPERTY</h4>
-        <h5>Article: <?php echo htmlspecialchars($article); ?></h5>
+        <h5><?php echo htmlspecialchars($article); ?></h5>
         <h6>(Type of Property, Plant and Equipment)</h6>
         <h5>As of <?php echo date('F Y'); ?></h5>
     </div>
@@ -327,22 +327,22 @@ ob_start();
         <table width="100%" class="signature-table">
             <tr>
                 <td class="text-center">
-                    <p>Certified Correct by:</p><br><br>
-                    <strong>__________________________</strong><br>
-                    <em>Signature over Printed Name</em><br>
-                    <em>of Inventory Committee Chair</em>
+                    <p><strong>Certified Correct by:</strong></p><br><br>
+                    <strong>____________________________________</strong><br>
+                    <em>Signature over Printed Name of</em><br>
+                    <em>Inventory Committee Chair</em>
                 </td>
                 <td class="text-center">
-                    <p>Approved by:</p><br><br>
-                    <strong>__________________________</strong><br>
-                    <em>Signature over Printed</em><br><
+                    <p><strong>Approved by:</strong></p><br><br>
+                    <strong>_____________________________</strong><br>
+                    <em>Signature over Printed</em><br>
                     <em>Name of School Head</em>
                 </td>
                 <td class="text-center">
-                    <p>Verified by:</p><br><br>
-                    <strong>__________________________</strong><br>
+                    <p><strong>Verified by:</strong></p><br><br>
+                    <strong>_____________________________</strong><br>
                     <em>Signature over Printed Name </em><br>
-                    <em>of COA Representative</em>
+                    <em>of COA Representative</em>  
                 </td>
             </tr>
         </table>

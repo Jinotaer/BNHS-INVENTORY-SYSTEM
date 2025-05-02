@@ -141,6 +141,17 @@ ob_start();
       width: 200px;
       margin: 0 auto;
     }
+
+    .line {
+      margin: 0px !important;
+    }
+
+    /* .square {
+      width: 20px !important;
+      height: 40px !important;
+      vertical-align: middle !important;
+      margin-right: 8px !important;
+    } */
   </style>
 </head>
 
@@ -267,14 +278,18 @@ ob_start();
             <p><strong>Date Inspected:</strong> <?php echo date('M d, Y', strtotime($header_data->date_inspected ?? '')); ?></p>
             <br>
             <p style="margin: 20px 0 0;">
-              <input type="checkbox" style="width: 15px; height: 15px; vertical-align: middle; margin-right: 8px;">
+              <input class="square" type="check" style="width: 15px; height: 15px; vertical-align: middle; margin-right: 8px;">
               Inspected, verified, and found in order as to quantity and specifications
             </p>
             <br>
             <p style="margin-top: 30px;"><strong>Inspection Officer/Inspection Committee</strong></p>
             <br>
-            <p style="text-align: center; margin: 0;"><?php echo htmlspecialchars($header_data->inspectors ?? ''); ?></p>
-            <p style="text-align: center; margin: 0;">_________________________________________</p>
+            <br>
+            <div>
+              <p style="text-align: center; margin: 0rem;"><?php echo htmlspecialchars($header_data->inspectors ?? ''); ?></p>
+              <p style="text-align: center; margin: 0;">_________________________________________</p>
+            </div>
+
             <p style="text-align: center;">Inspection Officer/Inspection Committee</p>
           </td>
 
@@ -283,18 +298,27 @@ ob_start();
             <p><strong>Date Received:</strong> <?php echo date('M d, Y', strtotime($header_data->date_received ?? '')); ?></p>
             <br>
             <p style="margin-top: 20px;">
-              <input type="checkbox" style="width: 15px; height: 15px; vertical-align: middle; margin-right: 8px;">
+              <input type="check" style="width: 15px; height: 15px; vertical-align: middle; margin-right: 8px;">
               Complete
             </p>
             <p style="margin-top: 10px;">
-              <input type="checkbox" style="width: 15px; height: 15px; vertical-align: middle; margin-right: 8px;">
+              <input type="check" style="width: 15px; height: 15px; vertical-align: middle; margin-right: 8px;">
               Partial (pls. specify quantity)
             </p>
             <br>
-            <p style="text-align: center;"><?php echo htmlspecialchars($header_data->property_custodian ?? ''); ?></p>
-            <div class="signature-line"></div>
-            <p style="text-align: center;">_________________________________________</p>
-            <p class="text-center">Supply & Property Custodian</p>
+            <br>
+            <br>
+            <div>
+              <p style="text-align: center;" class="mb-0"><?php echo htmlspecialchars($header_data->property_custodian ?? ''); ?></p>
+              <p class="line" tyle="line" style="text-align: center;">_________________________________________</p>
+              <p style="text-align: center; display: block; margin-left: auto; margin-right: auto; width: 100%;">Supply & Property Custodian</p>
+            </div>
+
+          </td>
+        </tr>
+        <tr>
+          <td>
+
           </td>
         </tr>
       </table>

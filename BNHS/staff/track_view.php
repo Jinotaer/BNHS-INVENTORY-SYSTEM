@@ -720,11 +720,11 @@ require_once('partials/_head.php');
                                                 <label class="form-label">Date Inspected</label>
                                                 <input style="color: #000000; background-color: #f8f9fa;" type="date" class="form-control" value="<?php echo $item['date_inspected'] ?? 'N/A'; ?>" readonly>
                                             </div>
-                                            <div class="col-md-5">
+                                            <div class="col-md-4">
                                                 <label class="form-label">Inspection Team</label>
                                                 <input style="color: #000000; background-color: #f8f9fa;" type="text" class="form-control" value="<?php echo $item['inspectors'] ?? 'N/A'; ?>" readonly>
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-4">
                                                 <label class="form-label">Barangay Councilor</label>
                                                 <input style="color: #000000; background-color: #f8f9fa;" type="text" class="form-control" value="<?php echo $item['barangay_councilor'] ?? 'N/A'; ?>" readonly>
                                             </div>
