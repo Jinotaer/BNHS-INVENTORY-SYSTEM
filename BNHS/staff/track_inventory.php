@@ -666,10 +666,10 @@ require_once('partials/_head.php');
     }
     
     /* Alternating row color */
-    #inventoryTable tbody tr:nth-of-type(odd) {
-      /* background-color: rgba(0, 0, 0, 0.01); */
+    /* #inventoryTable tbody tr:nth-of-type(odd) {
+      background-color: rgba(0, 0, 0, 0.01);
     }
-    
+     */
     #inventoryTable tbody tr:last-child {
       border-bottom: none;
     }
