@@ -185,7 +185,10 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
         
         // Update the item-specific tables instead of the main tables
         if ($source_table == 'inspection_acceptance_reports' && $item_id > 0) {
-            $sql = "UPDATE iar_items SET remarks = ? WHERE iar_item_id = ?";
+            $sql = "UPDATE iar_items i 
+                    JOIN items itm ON i.item_id = itm.item_id 
+                    SET i.remarks = ?, itm.updated_at = NOW() 
+                    WHERE i.iar_item_id = ?";
             try {
                 $stmt = $mysqli->prepare($sql);
                 if ($stmt === false) {
@@ -210,7 +213,10 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
             }
         } 
         else if ($source_table == 'inventory_custodian_slips' && $item_id > 0) {
-            $sql = "UPDATE ics_items SET remarks = ? WHERE ics_item_id = ?";
+            $sql = "UPDATE ics_items i 
+                    JOIN items itm ON i.item_id = itm.item_id 
+                    SET i.remarks = ?, itm.updated_at = NOW() 
+                    WHERE i.ics_item_id = ?";
             try {
                 $stmt = $mysqli->prepare($sql);
                 if ($stmt === false) {
@@ -235,7 +241,10 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
             }
         }
         else if ($source_table == 'property_acknowledgment_receipts' && $item_id > 0) {
-            $sql = "UPDATE par_items SET remarks = ? WHERE par_item_id = ?";
+            $sql = "UPDATE par_items i 
+                    JOIN items itm ON i.item_id = itm.item_id 
+                    SET i.remarks = ?, itm.updated_at = NOW() 
+                    WHERE i.par_item_id = ?";
             try {
                 $stmt = $mysqli->prepare($sql);
                 if ($stmt === false) {
@@ -260,7 +269,10 @@ if ($_SERVER['REQUEST_METHOD'] === "POST") {
             }
         }
         else if ($source_table == 'requisition_and_issue_slips' && $item_id > 0) {
-            $sql = "UPDATE ris_items SET remarks = ? WHERE ris_item_id = ?";
+            $sql = "UPDATE ris_items i 
+                    JOIN items itm ON i.item_id = itm.item_id 
+                    SET i.remarks = ?, itm.updated_at = NOW() 
+                    WHERE i.ris_item_id = ?";
             try {
                 $stmt = $mysqli->prepare($sql);
                 if ($stmt === false) {
@@ -310,7 +322,7 @@ require_once('partials/_head.php');
     <div class="col">
       <div class="card shadow">
         <div class="card-body">
-          <?php if(isset($err)): ?>
+          <!-- <?php if(isset($err)): ?>
           <div class="alert alert-danger">
             <strong>Error:</strong> <?php echo $err; ?>
           </div>
@@ -327,13 +339,13 @@ require_once('partials/_head.php');
               <p><strong>MySQL Version:</strong> <?php echo $mysqli->server_info; ?></p>
             </div>
           </div>
-          <?php endif; ?>
+          <?php endif; ?> -->
           
-          <?php if(isset($success)): ?>
+          <!-- <?php if(isset($success)): ?>
           <div class="alert alert-success">
             <strong>Success:</strong> <?php echo $success; ?>
           </div>
-          <?php endif; ?>
+          <?php endif; ?> -->
           
           <form method="POST" class="border border-light p-4 rounded">
             <div class="container mt-4">
@@ -427,6 +439,7 @@ require_once('partials/_head.php');
                     <div class="col-md-12">
                         <label>Remarks</label>
                         <textarea style="color: #000000;" class="form-control" name="remarks"><?php echo isset($item['remarks']) ? $item['remarks'] : ''; ?></textarea>
+                        <input type="hidden" name="updated_at" value="<?php echo date('Y-m-d H:i:s'); ?>">
                     </div>
                 </div>
 
@@ -564,6 +577,7 @@ require_once('partials/_head.php');
                     <div class="col-md-12">
                         <label>Remarks</label>
                         <textarea style="color: #000000;" class="form-control" name="remarks"><?php echo isset($item['remarks']) ? $item['remarks'] : ''; ?></textarea>
+                        <input type="hidden" name="updated_at" value="<?php echo date('Y-m-d H:i:s'); ?>">
                     </div>
                 </div>
 
@@ -655,6 +669,7 @@ require_once('partials/_head.php');
                     <div class="col-md-12">
                         <label>Remarks</label>
                         <textarea style="color: #000000;" class="form-control" name="remarks"><?php echo isset($item['remarks']) ? $item['remarks'] : ''; ?></textarea>
+                        <input type="hidden" name="updated_at" value="<?php echo date('Y-m-d H:i:s'); ?>">
                     </div>
                 </div>
 
@@ -783,6 +798,7 @@ require_once('partials/_head.php');
                     <div class="col-md-12">
                         <label>Remarks</label>
                         <textarea style="color: #000000;" class="form-control" name="remarks"><?php echo isset($item['remarks']) ? $item['remarks'] : ''; ?></textarea>
+                        <input type="hidden" name="updated_at" value="<?php echo date('Y-m-d H:i:s'); ?>">
                     </div>
                 </div>
               <?php endif; ?>

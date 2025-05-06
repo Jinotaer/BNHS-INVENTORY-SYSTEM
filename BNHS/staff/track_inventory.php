@@ -80,7 +80,7 @@ if (isset($_GET['item']) && !empty(trim($_GET['item']))) {
   
   foreach ($tables as $table => $config) {
     $sql = "SELECT DISTINCT m.*, i.item_description, i.unit_cost, ii.quantity, ii.iar_item_id,
-           (ii.quantity * i.unit_cost) as total_amount,
+           (ii.quantity * i.unit_cost) as total_amount, ii.remarks as item_remarks, i.remarks as general_remarks, i.updated_at,
            '$table' as source_table 
            FROM `$table` m
            JOIN {$config['items_table']} ii ON m.{$config['id_column']} = ii.{$config['id_column']}
@@ -93,7 +93,7 @@ if (isset($_GET['item']) && !empty(trim($_GET['item']))) {
     // Special handling for requisition_and_issue_slips
     if ($table == 'requisition_and_issue_slips') {
       $sql = "SELECT DISTINCT m.*, i.item_description, i.unit_cost, ii.issued_qty as quantity, ii.ris_item_id,
-             (ii.issued_qty * i.unit_cost) as total_amount,
+             (ii.issued_qty * i.unit_cost) as total_amount, ii.remarks as item_remarks, i.remarks as general_remarks, i.updated_at,
              '$table' as source_table 
              FROM `$table` m
              JOIN {$config['items_table']} ii ON m.{$config['id_column']} = ii.{$config['id_column']}
@@ -192,6 +192,8 @@ require_once('partials/_head.php');
                     <th scope="col">Quantity</th>
                     <th scope="col">Total Cost</th>
                     <th scope="col">Custodian</th>
+                    <th scope="col">Remarks</th>
+                    <th scope="col">Date Updated</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
@@ -210,6 +212,8 @@ require_once('partials/_head.php');
                         <td><?php echo $item->quantity ?? '0'; ?></td>
                         <td><?php echo $item->total_amount ?? '0.00'; ?></td>
                         <td><?php echo $item->property_custodian ?? $item->custodian_name ?? $item->issued_by_name ?? 'N/A'; ?></td>
+                        <td><?php echo $item->item_remarks ?? $item->general_remarks ?? 'N/A'; ?></td>
+                        <td><?php echo $item->updated_at ?? 'N/A'; ?></td>
                         <td>
                           <a href="track_view.php?item_id=<?php 
                             // Get the items table item ID
@@ -270,7 +274,7 @@ require_once('partials/_head.php');
 
                     foreach ($tables as $table => $config) {
                       $sql = "SELECT DISTINCT m.*, i.item_description, i.unit_cost, ii.quantity, ii.iar_item_id,
-                             (ii.quantity * i.unit_cost) as total_amount,
+                             (ii.quantity * i.unit_cost) as total_amount, ii.remarks as item_remarks, i.remarks as general_remarks, i.updated_at,
                              '$table' as source_table
                              FROM `$table` m
                              JOIN {$config['items_table']} ii ON m.{$config['id_column']} = ii.{$config['id_column']}
@@ -280,7 +284,7 @@ require_once('partials/_head.php');
                       // Make special adjustment for the requisition_and_issue_slips table
                       if ($table == 'requisition_and_issue_slips') {
                         $sql = "SELECT DISTINCT m.*, i.item_description, i.unit_cost, ii.issued_qty as quantity, ii.ris_item_id,
-                              (ii.issued_qty * i.unit_cost) as total_amount,
+                              (ii.issued_qty * i.unit_cost) as total_amount, ii.remarks as item_remarks, i.remarks as general_remarks, i.updated_at,
                               '$table' as source_table
                               FROM `$table` m
                               JOIN {$config['items_table']} ii ON m.{$config['id_column']} = ii.{$config['id_column']}
@@ -289,7 +293,7 @@ require_once('partials/_head.php');
                       }
                       elseif ($table == 'inventory_custodian_slips') {
                         $sql = "SELECT DISTINCT m.*, i.item_description, i.unit_cost, ii.quantity, ii.ics_item_id,
-                              (ii.quantity * i.unit_cost) as total_amount,
+                              (ii.quantity * i.unit_cost) as total_amount, ii.remarks as item_remarks, i.remarks as general_remarks, i.updated_at,
                               '$table' as source_table
                               FROM `$table` m
                               JOIN {$config['items_table']} ii ON m.{$config['id_column']} = ii.{$config['id_column']}
@@ -298,7 +302,7 @@ require_once('partials/_head.php');
                       }
                       elseif ($table == 'property_acknowledgment_receipts') {
                         $sql = "SELECT DISTINCT m.*, i.item_description, i.unit_cost, ii.quantity, ii.par_item_id,
-                              (ii.quantity * i.unit_cost) as total_amount,
+                              (ii.quantity * i.unit_cost) as total_amount, ii.remarks as item_remarks, i.remarks as general_remarks, i.updated_at,
                               '$table' as source_table
                               FROM `$table` m
                               JOIN {$config['items_table']} ii ON m.{$config['id_column']} = ii.{$config['id_column']}
@@ -330,6 +334,8 @@ require_once('partials/_head.php');
                               <td><?php echo $item->quantity ?? '0'; ?></td>
                               <td><?php echo $item->total_amount ?? '0.00'; ?></td>
                               <td><?php echo $item->property_custodian ?? $item->custodian_name ?? $item->issued_by_name ?? 'N/A'; ?></td>
+                              <td><?php echo $item->item_remarks ?? $item->general_remarks ?? 'N/A'; ?></td>
+                              <td><?php echo $item->updated_at ?? 'N/A'; ?></td>
                               <td>
                                 <a href="track_view.php?item_id=<?php 
                                   // Get the items table item ID

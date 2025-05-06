@@ -76,7 +76,7 @@ require_once('partials/_inhead.php');
       <div class="links">
         <p style=>Don't have an account? <a href="create_account.php">Signup</a></p>
       </div>
-    </form>
+    </form> 
   </div>
 
   <!-- Footer -->

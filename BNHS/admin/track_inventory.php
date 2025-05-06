@@ -80,7 +80,7 @@ if (isset($_GET['item']) && !empty(trim($_GET['item']))) {
   
   foreach ($tables as $table => $config) {
     $sql = "SELECT DISTINCT m.*, i.item_description, i.unit_cost, ii.quantity, ii.iar_item_id,
-           (ii.quantity * i.unit_cost) as total_amount,
+           (ii.quantity * i.unit_cost) as total_amount, ii.remarks as item_remarks, i.remarks as general_remarks, i.updated_at,
            '$table' as source_table 
            FROM `$table` m
            JOIN {$config['items_table']} ii ON m.{$config['id_column']} = ii.{$config['id_column']}
@@ -93,7 +93,7 @@ if (isset($_GET['item']) && !empty(trim($_GET['item']))) {
     // Special handling for requisition_and_issue_slips
     if ($table == 'requisition_and_issue_slips') {
       $sql = "SELECT DISTINCT m.*, i.item_description, i.unit_cost, ii.issued_qty as quantity, ii.ris_item_id,
-             (ii.issued_qty * i.unit_cost) as total_amount,
+             (ii.issued_qty * i.unit_cost) as total_amount, ii.remarks as item_remarks, i.remarks as general_remarks, i.updated_at,
              '$table' as source_table 
              FROM `$table` m
              JOIN {$config['items_table']} ii ON m.{$config['id_column']} = ii.{$config['id_column']}
@@ -192,6 +192,8 @@ require_once('partials/_head.php');
                     <th scope="col">Quantity</th>
                     <th scope="col">Total Cost</th>
                     <th scope="col">Custodian</th>
+                    <th scope="col">Remarks</th>
+                    <th scope="col">Date Updated</th>
                     <th scope="col">Actions</th>
                   </tr>
                 </thead>
@@ -210,6 +212,8 @@ require_once('partials/_head.php');
                         <td><?php echo $item->quantity ?? '0'; ?></td>
                         <td><?php echo $item->total_amount ?? '0.00'; ?></td>
                         <td><?php echo $item->property_custodian ?? $item->custodian_name ?? $item->issued_by_name ?? 'N/A'; ?></td>
+                        <td><?php echo $item->item_remarks ?? $item->general_remarks ?? 'N/A'; ?></td>
+                        <td><?php echo $item->updated_at ?? 'N/A'; ?></td>
                         <td>
                           <a href="track_view.php?item_id=<?php 
                             // Get the items table item ID
@@ -224,10 +228,37 @@ require_once('partials/_head.php');
                             }elseif($item->source_table == 'inspection_acceptance_reports' && $items_table == 'iar_items'){
                               $item_id_field = "iar_item_id";
                             }
+
+                            // Debug the field name
+                            error_log("Looking for field: $item_id_field in item object");
                             echo isset($item->$item_id_field) ? $item->$item_id_field : '0';
                           ?>&table=<?php echo $item->source_table; ?>">
                             <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i> View</button>
                           </a>
+                          <!-- <a href="track_inventory.php?delete=<?php echo $item->{$tables[$item->source_table]['id_column']}; ?>&table=<?php echo $item->source_table; ?>&item_id=<?php 
+                            // Get the items table item ID
+                            $items_table = $tables[$item->source_table]['items_table'];
+                            $item_id_field = "{$items_table}_id";
+                            if ($item->source_table == 'requisition_and_issue_slips' && $items_table == 'ris_items') {
+                                $item_id_field = "ris_item_id";
+                            }elseif($item->source_table == 'property_acknowledgment_receipts' && $items_table == 'par_items'){
+                              $item_id_field = "par_item_id";
+                            }elseif($item->source_table == 'inventory_custodian_slips' && $items_table == 'ics_items'){
+                              $item_id_field = "ics_item_id";
+                            }elseif($item->source_table == 'inspection_acceptance_reports' && $items_table == 'iar_items'){
+                              $item_id_field = "iar_item_id";
+                            }
+
+                            // Debug the field name
+                            error_log("Looking for field: $item_id_field in item object");
+                            echo isset($item->$item_id_field) ? $item->$item_id_field : '0';
+                          ?>"
+                            onclick="return confirm('Are you sure you want to delete this record?')">
+                            <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
+                          </a>
+                          <a href="track_inventory_update.php?id=<?php echo $item->{$tables[$item->source_table]['id_column']}; ?>&table=<?php echo $item->source_table; ?>">
+                            <button class="btn btn-sm btn-primary"><i class="fas fa-user-edit"></i> Update</button>
+                          </a> -->
                         </td>
                       </tr>
                       <?php
@@ -243,7 +274,7 @@ require_once('partials/_head.php');
 
                     foreach ($tables as $table => $config) {
                       $sql = "SELECT DISTINCT m.*, i.item_description, i.unit_cost, ii.quantity, ii.iar_item_id,
-                             (ii.quantity * i.unit_cost) as total_amount,
+                             (ii.quantity * i.unit_cost) as total_amount, ii.remarks as item_remarks, i.remarks as general_remarks, i.updated_at,
                              '$table' as source_table
                              FROM `$table` m
                              JOIN {$config['items_table']} ii ON m.{$config['id_column']} = ii.{$config['id_column']}
@@ -253,7 +284,7 @@ require_once('partials/_head.php');
                       // Make special adjustment for the requisition_and_issue_slips table
                       if ($table == 'requisition_and_issue_slips') {
                         $sql = "SELECT DISTINCT m.*, i.item_description, i.unit_cost, ii.issued_qty as quantity, ii.ris_item_id,
-                              (ii.issued_qty * i.unit_cost) as total_amount,
+                              (ii.issued_qty * i.unit_cost) as total_amount, ii.remarks as item_remarks, i.remarks as general_remarks, i.updated_at,
                               '$table' as source_table
                               FROM `$table` m
                               JOIN {$config['items_table']} ii ON m.{$config['id_column']} = ii.{$config['id_column']}
@@ -262,7 +293,7 @@ require_once('partials/_head.php');
                       }
                       elseif ($table == 'inventory_custodian_slips') {
                         $sql = "SELECT DISTINCT m.*, i.item_description, i.unit_cost, ii.quantity, ii.ics_item_id,
-                              (ii.quantity * i.unit_cost) as total_amount,
+                              (ii.quantity * i.unit_cost) as total_amount, ii.remarks as item_remarks, i.remarks as general_remarks, i.updated_at,
                               '$table' as source_table
                               FROM `$table` m
                               JOIN {$config['items_table']} ii ON m.{$config['id_column']} = ii.{$config['id_column']}
@@ -271,7 +302,7 @@ require_once('partials/_head.php');
                       }
                       elseif ($table == 'property_acknowledgment_receipts') {
                         $sql = "SELECT DISTINCT m.*, i.item_description, i.unit_cost, ii.quantity, ii.par_item_id,
-                              (ii.quantity * i.unit_cost) as total_amount,
+                              (ii.quantity * i.unit_cost) as total_amount, ii.remarks as item_remarks, i.remarks as general_remarks, i.updated_at,
                               '$table' as source_table
                               FROM `$table` m
                               JOIN {$config['items_table']} ii ON m.{$config['id_column']} = ii.{$config['id_column']}
@@ -279,14 +310,20 @@ require_once('partials/_head.php');
                               ORDER BY m.created_at DESC";
                       }
 
+                      // Add debugging
+                      error_log("Executing query for table $table: " . $sql);
+
                       $stmt = $mysqli->prepare($sql);
                       if ($stmt) {
                         $stmt->execute();
                         $result = $stmt->get_result();
 
+                        // Add debugging
+                        error_log("Query for $table returned " . ($result ? $result->num_rows : 0) . " rows");
+
                         if ($result && $result->num_rows > 0) {
                           while ($item = $result->fetch_object()) {
-                    ?>
+                      ?>
                             <tr>
                               <td><?php echo ucfirst(str_replace('_', ' ', $table)); ?></td>
                               <td><?php echo $item->item_description ?? 'N/A'; ?></td>
@@ -297,6 +334,8 @@ require_once('partials/_head.php');
                               <td><?php echo $item->quantity ?? '0'; ?></td>
                               <td><?php echo $item->total_amount ?? '0.00'; ?></td>
                               <td><?php echo $item->property_custodian ?? $item->custodian_name ?? $item->issued_by_name ?? 'N/A'; ?></td>
+                              <td><?php echo $item->item_remarks ?? $item->general_remarks ?? 'N/A'; ?></td>
+                              <td><?php echo $item->updated_at ?? 'N/A'; ?></td>
                               <td>
                                 <a href="track_view.php?item_id=<?php 
                                   // Get the items table item ID
@@ -311,13 +350,57 @@ require_once('partials/_head.php');
                                   }elseif($table == 'inspection_acceptance_reports' && $items_table == 'iar_items'){
                                     $item_id_field = "iar_item_id";
                                   }
+
+                                  // Debug the field name
+                                  error_log("Looking for field: $item_id_field in item object");
                                   echo isset($item->$item_id_field) ? $item->$item_id_field : '0';
                                 ?>&table=<?php echo $table; ?>">
                                   <button class="btn btn-sm btn-info"><i class="fas fa-eye"></i> View</button>
                                 </a>
+                                <!-- <a href="track_inventory.php?delete=<?php echo $item->{$config['id_column']}; ?>&table=<?php echo $table; ?>&item_id=<?php 
+                                  // Get the items table item ID
+                                  $items_table = $config['items_table'];
+                                  $item_id_field = "{$items_table}_id";
+                                  if ($table == 'requisition_and_issue_slips' && $items_table == 'ris_items') {
+                                      $item_id_field = "ris_item_id";
+                                  }elseif($table == 'property_acknowledgment_receipts' && $items_table == 'par_items'){
+                                    $item_id_field = "par_item_id";
+                                  }elseif($table == 'inventory_custodian_slips' && $items_table == 'ics_items'){
+                                    $item_id_field = "ics_item_id";
+                                  }elseif($table == 'inspection_acceptance_reports' && $items_table == 'iar_items'){
+                                    $item_id_field = "iar_item_id";
+                                  }
+
+                                  // Debug the field name
+                                  error_log("Looking for field: $item_id_field in item object");
+                                  echo isset($item->$item_id_field) ? $item->$item_id_field : '0';
+                                ?>"
+                                  onclick="return confirm('Are you sure you want to delete this record?')">
+                                  <button class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
+                                </a>
+                                <a href="track_inventory_update.php?id=<?php echo $item->{$config['id_column']}; ?>&table=<?php echo $table; ?>&item_id=<?php 
+                                  // Get the items table item ID
+                                  $items_table = $config['items_table'];
+                                  $item_id_field = "{$items_table}_id";
+                                  if ($table == 'requisition_and_issue_slips' && $items_table == 'ris_items') {
+                                      $item_id_field = "ris_item_id";
+                                  }elseif($table == 'property_acknowledgment_receipts' && $items_table == 'par_items'){
+                                    $item_id_field = "par_item_id";
+                                  }elseif($table == 'inventory_custodian_slips' && $items_table == 'ics_items'){
+                                    $item_id_field = "ics_item_id";
+                                  }elseif($table == 'inspection_acceptance_reports' && $items_table == 'iar_items'){
+                                    $item_id_field = "iar_item_id";
+                                  }
+
+                                  // Debug the field name
+                                  error_log("Looking for field: $item_id_field in item object");
+                                  echo isset($item->$item_id_field) ? $item->$item_id_field : '0';
+                                ?>">
+                                  <button class="btn btn-sm btn-primary"><i class="fas fa-user-edit"></i> Update</button>
+                                </a> -->
                               </td>
                             </tr>
-                    <?php
+                  <?php
                           }
                         }
                         $stmt->close();
@@ -334,7 +417,6 @@ require_once('partials/_head.php');
           </div>
         </div>
       </div>
-    
     
     </div>
   </div>
@@ -590,10 +672,10 @@ require_once('partials/_head.php');
     }
     
     /* Alternating row color */
-    #inventoryTable tbody tr:nth-of-type(odd) {
-      /* background-color: rgba(0, 0, 0, 0.01); */
+    /* #inventoryTable tbody tr:nth-of-type(odd) {
+      background-color: rgba(0, 0, 0, 0.01);
     }
-    
+     */
     #inventoryTable tbody tr:last-child {
       border-bottom: none;
     }
@@ -623,6 +705,25 @@ require_once('partials/_head.php');
       padding: 0px !important;
       font-weight: 500;
       color: #8898aa;
+    }
+    
+    /* Footer styles */
+    .footer {
+      padding: 1.5rem 0;
+      margin-top: 2rem;
+      border-top: 1px solid #e9ecef;
+      background-color: #f6f9fc;
+    }
+    
+    .footer .copyright {
+      font-size: 0.875rem;
+      font-weight: 400;
+      color: #8898aa;
+    }
+    
+    .footer .nav-link {
+      font-size: 0.875rem;
+      font-weight: 500;
     }
   </style>
 </body>
