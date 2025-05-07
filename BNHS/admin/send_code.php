@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       $mail->Body = "
         <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;'>
             <div style='text-align: center; margin-bottom: 20px;'>
-                <img src='../assets/img/brand/bnhs.png' alt='BNHS Logo' style='width: 100px; height: auto;'>
+                  <img src='https://media.licdn.com/dms/image/v2/C560BAQFKp73CoeDSeA/company-logo_200_200/company-logo_200_200/0/1632664744758?e=2147483647&v=beta&t=ZA_N5ziKoP489erbycdGhsJtI5oDRSwSzxhcfoeXc-I' alt='BNHS Logo' style='width: 150px; height: auto;'>
             </div>
             <div style='background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 20px;'>
                 <h2 style='color: #29126d; margin-bottom: 15px; text-align: center;'>Password Reset Request</h2>
