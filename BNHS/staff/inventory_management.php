@@ -457,11 +457,11 @@ require_once('partials/_head.php');
                       <label class="form-label">Date Inspected</label>
                       <input style="color: #000000;" type="date" class="form-control" name="date_inspected" value="<?php echo $date_inspected; ?>" required>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-4">
                       <label class="form-label">Inspection Team (comma separated)</label>
                       <input style="color: #000000;" type="text" class="form-control" name="inspectors" placeholder="e.g., Joan Savage, Nelson British, Bles Sings" value="<?php echo $inspectors; ?>" required>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label">Barangay Councilor</label>
                       <input style="color: #000000;" type="text" class="form-control" name="barangay_councilor" value="<?php echo $barangay_councilor; ?>" required>
                     </div>

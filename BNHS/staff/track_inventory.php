@@ -187,7 +187,7 @@ require_once('partials/_head.php');
                     <th scope="col">Item Description</th>
                     <th scope="col">Item No.</th>
                     <th scope="col">End User</th>
-                    <th scope="col">Date</th>
+                    <th scope="col">Date Added</th>
                     <th scope="col">Unit Cost</th>
                     <th scope="col">Quantity</th>
                     <th scope="col">Total Cost</th>
@@ -207,13 +207,25 @@ require_once('partials/_head.php');
                         <td><?php echo $item->item_description ?? 'N/A'; ?></td>
                         <td><?php echo $item->{$item->source_table . '_no'} ?? 'N/A'; ?></td>
                         <td><?php echo $item->receiver_name ?? $item->end_user_name ?? $item->received_by_name ?? 'N/A'; ?></td>
-                        <td><?php echo $item->created_at ?? 'N/A'; ?></td>
+                        <td><?php
+                          if (!empty($item->created_at)) {
+                            echo date('M j, Y g:i A', strtotime($item->created_at));
+                          } else {
+                            echo 'N/A';
+                          }
+                        ?></td>
                         <td><?php echo $item->unit_cost ?? '0.00'; ?></td>
                         <td><?php echo $item->quantity ?? '0'; ?></td>
                         <td><?php echo $item->total_amount ?? '0.00'; ?></td>
                         <td><?php echo $item->property_custodian ?? $item->custodian_name ?? $item->issued_by_name ?? 'N/A'; ?></td>
                         <td><?php echo $item->item_remarks ?? $item->general_remarks ?? 'N/A'; ?></td>
-                        <td><?php echo $item->updated_at ?? 'N/A'; ?></td>
+                        <td><?php
+                          if (!empty($item->updated_at)) {
+                            echo date('M j, Y g:i A', strtotime($item->updated_at));
+                          } else {
+                            echo 'N/A';
+                          }
+                        ?></td>
                         <td>
                           <a href="track_view.php?item_id=<?php 
                             // Get the items table item ID
@@ -329,13 +341,25 @@ require_once('partials/_head.php');
                               <td><?php echo $item->item_description ?? 'N/A'; ?></td>
                               <td><?php echo $item->{$config['no_column']} ?? 'N/A'; ?></td>
                               <td><?php echo $item->receiver_name ?? $item->end_user_name ?? $item->received_by_name ?? 'N/A'; ?></td>
-                              <td><?php echo $item->created_at ?? 'N/A'; ?></td>
+                              <td><?php
+                                if (!empty($item->created_at)) {
+                                  echo date('M j, Y g:i A', strtotime($item->created_at));
+                                } else {
+                                  echo 'N/A';
+                                }
+                              ?></td>
                               <td><?php echo $item->unit_cost ?? '0.00'; ?></td>
                               <td><?php echo $item->quantity ?? '0'; ?></td>
                               <td><?php echo $item->total_amount ?? '0.00'; ?></td>
                               <td><?php echo $item->property_custodian ?? $item->custodian_name ?? $item->issued_by_name ?? 'N/A'; ?></td>
                               <td><?php echo $item->item_remarks ?? $item->general_remarks ?? 'N/A'; ?></td>
-                              <td><?php echo $item->updated_at ?? 'N/A'; ?></td>
+                              <td><?php
+                                if (!empty($item->updated_at)) {
+                                  echo date('M j, Y g:i A', strtotime($item->updated_at));
+                                } else {
+                                  echo 'N/A';
+                                }
+                              ?></td>
                               <td>
                                 <a href="track_view.php?item_id=<?php 
                                   // Get the items table item ID

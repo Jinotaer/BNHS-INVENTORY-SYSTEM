@@ -183,16 +183,16 @@ require_once('partials/_head.php');
                       <!-- <td><?php echo $item->quantity; ?></td>
                       <td><?php echo $item->unit; ?></td> -->
                       <!-- <td><?php echo $item->item_description; ?></td> -->
-                      <!-- <td><?php echo $item->property_number; ?></td> -->
-                      <td><?php echo $par->date_acquired; ?></td>
+                      <!-- <td><?php echo $item->property_number; ?></td> --> 
+                      <td><?php echo !empty($par->date_acquired) ? date('M d, Y g:i A', strtotime($par->date_acquired)) : ''; ?></td>
                       <!-- <td><?php echo $item->unit_cost; ?></td> -->
                       <td><?php echo $item->total_amount; ?></td>
                       <td><?php echo $par->end_user_name; ?></td>
                       <td><?php echo $par->receiver_position; ?></td>
-                      <td><?php echo $par->receiver_date; ?></td>
+                      <td><?php echo !empty($par->receiver_date) ? date('M d, Y g:i A', strtotime($par->receiver_date)) : ''; ?></td>
                       <td><?php echo $par->custodian_name; ?></td>
                       <td><?php echo $par->custodian_position; ?></td>
-                      <td><?php echo $par->custodian_date; ?></td>
+                      <td><?php echo !empty($par->custodian_date) ? date('M d, Y g:i A', strtotime($par->custodian_date)) : ''; ?></td>
                       <!-- <td><?php echo $item->remarks; ?></td> -->
                       <td>
                         <!-- <a href="display_par.php?delete=<?php echo $par->par_id; ?>">

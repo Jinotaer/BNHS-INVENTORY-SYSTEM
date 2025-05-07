@@ -192,10 +192,10 @@ require_once('partials/_head.php');
                       <td><?php echo htmlspecialchars($item->estimated_useful_life); ?></td> -->
                       <td><?php echo htmlspecialchars($ics->end_user_name); ?></td>
                       <td><?php echo htmlspecialchars($ics->end_user_position); ?></td>
-                      <td><?php echo date('M d, Y', strtotime($ics->end_user_date)); ?></td>
+                      <td><?php echo date('M d, Y g:i A', strtotime($ics->end_user_date)); ?></td>
                       <td><?php echo htmlspecialchars($ics->custodian_name); ?></td>
                       <td><?php echo htmlspecialchars($ics->custodian_position); ?></td>
-                      <td><?php echo date('M d, Y', strtotime($ics->custodian_date)); ?></td>
+                      <td><?php echo date('M d, Y g:i A', strtotime($ics->custodian_date)); ?></td>
                       <!-- <td><?php echo htmlspecialchars($item->remarks); ?></td> -->
                       <td>
                         <!-- <a href="display_ics.php?delete=<?php echo $ics->ics_id; ?>">

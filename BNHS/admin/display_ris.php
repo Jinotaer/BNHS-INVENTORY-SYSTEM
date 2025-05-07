@@ -228,16 +228,16 @@ require_once('partials/_head.php');
                       <!-- s<td><?php echo htmlspecialchars($ris->purpose); ?></td> -->
                       <td><?php echo htmlspecialchars($ris->requested_by_name); ?></td>
                       <td><?php echo htmlspecialchars($ris->requested_by_designation); ?></td>
-                      <td><?php echo !empty($ris->requested_by_date) ? date('M d, Y', strtotime($ris->requested_by_date)) : ''; ?></td>
+                      <td><?php echo !empty($ris->requested_by_date) ? date('M d, Y g:i A', strtotime($ris->requested_by_date)) : ''; ?></td>
                       <td><?php echo htmlspecialchars($ris->approved_by_name); ?></td>
                       <td><?php echo htmlspecialchars($ris->approved_by_designation); ?></td>
-                      <td><?php echo !empty($ris->approved_by_date) ? date('M d, Y', strtotime($ris->approved_by_date)) : ''; ?></td>
+                      <td><?php echo !empty($ris->approved_by_date) ? date('M d, Y g:i A', strtotime($ris->approved_by_date)) : ''; ?></td>
                       <td><?php echo htmlspecialchars($ris->issued_by_name); ?></td>
                       <td><?php echo htmlspecialchars($ris->issued_by_designation); ?></td>
-                      <td><?php echo !empty($ris->issued_by_date) ? date('M d, Y', strtotime($ris->issued_by_date)) : ''; ?></td>
+                      <td><?php echo !empty($ris->issued_by_date) ? date('M d, Y g:i A', strtotime($ris->issued_by_date)) : ''; ?></td>
                       <td><?php echo htmlspecialchars($ris->received_by_name); ?></td>
                       <td><?php echo htmlspecialchars($ris->received_by_designation); ?></td>
-                      <td><?php echo !empty($ris->received_by_date) ? date('M d, Y', strtotime($ris->received_by_date)) : ''; ?></td>
+                      <td><?php echo !empty($ris->received_by_date) ? date('M d, Y g:i A', strtotime($ris->received_by_date)) : ''; ?></td>
                       <td>
                         <!-- <a href="display_ris.php?delete=<?php echo $ris->ris_id; ?>" >
                           <button class="btn btn-sm btn-danger">

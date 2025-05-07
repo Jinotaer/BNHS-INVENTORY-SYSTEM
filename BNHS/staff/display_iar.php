@@ -217,7 +217,7 @@ require_once('partials/_head.php');
                       <td><?php echo htmlspecialchars($iar->req_office); ?></td>
                       <td><?php echo htmlspecialchars($iar->responsibility_center); ?></td>
                       <td><?php echo htmlspecialchars($iar->iar_no); ?></td>
-                      <td><?php echo date('M d, Y', strtotime($iar->iar_date)); ?></td>
+                      <td><?php echo date('M d, Y g:i A', strtotime($iar->iar_date)); ?></td>
                       <td><?php echo htmlspecialchars($iar->invoice_no_date); ?></td>
                       <!-- <td><?php echo htmlspecialchars($item->stock_no); ?></td> -->
                       <!-- <td><?php echo htmlspecialchars($item->remarks); ?></td> -->
@@ -229,11 +229,11 @@ require_once('partials/_head.php');
                       <td><?php echo htmlspecialchars($iar->receiver_name); ?></td>
                       <td><?php echo htmlspecialchars($iar->teacher_id); ?></td>
                       <td><?php echo htmlspecialchars($iar->position); ?></td>
-                      <td><?php echo date('M d, Y', strtotime($iar->date_inspected)); ?></td>
+                      <td><?php echo date('M d, Y g:i A', strtotime($iar->date_inspected)); ?></td>
                       <td><?php echo htmlspecialchars($iar->inspectors); ?></td>
                       <td><?php echo htmlspecialchars($iar->barangay_councilor); ?></td>
                       <td><?php echo htmlspecialchars($iar->pta_observer); ?></td>
-                      <td><?php echo date('M d, Y', strtotime($iar->date_received)); ?></td>
+                      <td><?php echo date('M d, Y g:i A', strtotime($iar->date_received)); ?></td>
                       <td><?php echo htmlspecialchars($iar->property_custodian); ?></td>
                       <td>
                         <!-- <a href="display_iar.php?delete=<?php echo $iar->iar_id; ?>">
