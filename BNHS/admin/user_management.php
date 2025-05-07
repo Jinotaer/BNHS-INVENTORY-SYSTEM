@@ -57,6 +57,7 @@ require_once('partials/_head.php');
               <table class="table align-items-center table-flush">
                 <thead class="thead-light">
                   <tr>
+                    <th scope="col">Profile</th>
                     <th scope="col">ID</th>
                     <th scope="col">Full Name</th>
                     <th scope="col">Email</th>
@@ -73,6 +74,7 @@ require_once('partials/_head.php');
                   while ($staff = $res->fetch_object()) {
                   ?>
                     <tr>
+                      <td><img src="assets/img/theme/user-a-min.png" alt="Profile" class="img-fluid rounded-circle" style="width: 40px; height: 40px;"></td>
                       <td><?php echo $staff->staff_id; ?></td>
                       <td><?php echo $staff->staff_name; ?></td>
                       <td><?php echo $staff->staff_email; ?></td>

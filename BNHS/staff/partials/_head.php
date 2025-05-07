@@ -72,7 +72,7 @@
                          text: "Do you wish to logout?",
                         icon: "warning",
                         buttons: true,
-                        dangerMode: true,
+                        primaryColor: "#0056b3",
                     }).then((willLogout) => {
                         if (willLogout) {
                             // Redirect to the logout page
